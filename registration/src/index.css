@@ -44,7 +44,7 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background: var(--bg);
+  background: #1a1a1a;
 }
 
 h1,

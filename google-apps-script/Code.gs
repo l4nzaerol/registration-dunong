@@ -1,16 +1,3 @@
-/**
- * Dunong Webinar - Google Apps Script API
- *
- * SETUP:
- * 1. Create a Google Sheet (or use an existing one).
- * 2. Copy the Spreadsheet ID from the URL:
- *    https://docs.google.com/spreadsheets/d/1aVa8QciVJNkbhrc9MbL8oFyOzo18Zg-DvWzM5vi-oAc/edit?gid=0#gid=0
- * 3. Paste it into SPREADSHEET_ID below.
- * 4. In Apps Script: Deploy > New deployment > Web app
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 5. Copy the Web App URL into registration/.env as VITE_GAS_WEB_APP_URL
- */
 
 const SPREADSHEET_ID = 'PASTE_YOUR_SPREADSHEET_ID_HERE';
 const SHEET_NAME = 'Registrations';

@@ -183,11 +183,10 @@ function RegistrationPage() {
   return (
     <div className="page">
       <header className="header">
-        <p className="eyebrow">Before the Webinar</p>
-        <h1>DUNONG WEBINAR</h1>
+        <p className="eyebrow"></p>
+        <h1>DUNONG</h1>
         <p className="subtitle">
-          Register to receive a unique code. After the webinar, use that code on the Feedback
-          page to verify your attendance and download your e-certificate.
+          A LEADERSHIP WEBINAR FOR ASPIRING YOUTH LEADERS
         </p>
       </header>
 
@@ -270,13 +269,28 @@ function FeedbackPage() {
   const [errors, setErrors] = useState({})
   const [certificateData, setCertificateData] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [downloadError, setDownloadError] = useState('')
 
   function handleChange(event) {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  async function handleDownload() {
+    setDownloadError('')
+    setDownloading(true)
+
+    try {
+      await downloadCertificate()
+    } catch (error) {
+      setDownloadError(error.message || 'Unable to download certificate. Please try again.')
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -347,6 +361,7 @@ function FeedbackPage() {
     setErrors({})
     setCertificateData(null)
     setSubmitError('')
+    setDownloadError('')
   }
 
   if (step === 'certificate' && certificateData) {
@@ -365,12 +380,18 @@ function FeedbackPage() {
         />
 
         <div className="certificate-actions">
-          <button type="button" className="btn btn-primary" onClick={downloadCertificate}>
-            Download Certificate (PDF)
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            {downloading ? 'Generating PDF...' : 'Download Certificate (PDF)'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={handleReset}>
             Submit Another Feedback
           </button>
+          {downloadError && <p className="form-error">{downloadError}</p>}
         </div>
       </div>
     )
@@ -379,11 +400,11 @@ function FeedbackPage() {
   return (
     <div className="page">
       <header className="header">
-        <p className="eyebrow">After the Webinar</p>
+        <p className="eyebrow"></p>
         <h1>Feedback & E-Certificate</h1>
         <p className="subtitle">
           Enter the registration code you received before the webinar. Your code will be
-          verified in Google Sheets before your e-certificate is issued.
+          verified before your e-certificate is issued.
         </p>
       </header>
 
