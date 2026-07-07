@@ -1,0 +1,250 @@
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 64px;
+  gap: 32px;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 48px;
+    gap: 24px;
+  }
+}
+
+.header {
+  max-width: 640px;
+}
+
+.eyebrow {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 0 auto;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+.card {
+  width: 100%;
+  max-width: 720px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: left;
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    padding: 24px 20px;
+  }
+}
+
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.form-group input {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder {
+    color: var(--text);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+}
+
+.error {
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.btn {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.btn-primary {
+  align-self: center;
+  color: #fff;
+  background: var(--accent);
+  margin-top: 4px;
+
+  &:hover {
+    box-shadow: var(--shadow);
+    background: #a50d26;
+  }
+}
+
+.btn-secondary {
+  color: var(--text-h);
+  background: var(--bg);
+  border-color: var(--border);
+
+  &:hover {
+    border-color: var(--accent-border);
+    background: var(--accent-bg);
+  }
+}
+
+.success-card {
+  text-align: center;
+}
+
+.success-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.success-message {
+  font-size: 18px;
+  margin-bottom: 28px;
+
+  strong {
+    color: var(--text-h);
+  }
+}
+
+.registration-number-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  margin-bottom: 16px;
+  background: var(--bg);
+  border: 2px dashed var(--accent-border);
+  border-radius: 10px;
+}
+
+.registration-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.registration-number {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  word-break: break-all;
+
+  @media (max-width: 1024px) {
+    font-size: 22px;
+  }
+}
+
+.registration-note {
+  font-size: 14px;
+  margin-bottom: 28px;
+  opacity: 0.85;
+}
+
+.summary {
+  text-align: left;
+  margin-bottom: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+
+  h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  dl > div {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+  }
+
+  dt {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-h);
+  }
+}
