@@ -1,16 +1,37 @@
-# React + Vite
+# Dunong Webinar Registration
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React app for webinar registration, feedback verification, and e-certificate download — connected to Google Sheets via Google Apps Script.
 
-Currently, two official plugins are available:
+## Quick start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+cd registration
+npm install
+cp .env.example .env
+npm run dev
+```
 
-## React Compiler
+Add your Google Apps Script Web App URL to `.env`:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+VITE_GAS_WEB_APP_URL=https://script.google.com/macros/s/YOUR_ID/exec
+```
 
-## Expanding the Oxlint configuration
+## Google Sheets setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Full step-by-step instructions: [`../google-apps-script/SETUP.md`](../google-apps-script/SETUP.md)
+
+## Flow
+
+1. **Registration** — User registers before the webinar; a unique code is saved in Google Sheets.
+2. **Feedback** — After the webinar, user enters their code and submits feedback.
+3. **Verification** — Google Apps Script validates the code against the sheet.
+4. **E-certificate** — Verified users can download a certificate (Print → Save as PDF).
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run preview` | Preview production build |

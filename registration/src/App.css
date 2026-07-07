@@ -12,6 +12,51 @@
   }
 }
 
+.app-shell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-banner {
+  background: #fff5f5;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-h);
+  font-size: 14px;
+  padding: 12px 20px;
+  text-align: center;
+}
+
+.nav-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-tab {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+
+  &.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  &:hover {
+    color: var(--accent);
+  }
+}
+
 .header {
   max-width: 640px;
 }
@@ -100,9 +145,51 @@
   }
 }
 
+.form-group select,
+.form-group textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
 .error {
   font-size: 13px;
   color: #dc2626;
+}
+
+.form-error {
+  font-size: 14px;
+  color: #dc2626;
+  text-align: center;
+  margin: 0;
+}
+
+.verified-note {
+  font-size: 14px;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.certificate-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .btn {
@@ -114,6 +201,11 @@
   border: 2px solid transparent;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 
   &:focus-visible {
     outline: 2px solid var(--accent);
