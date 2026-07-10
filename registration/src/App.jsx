@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   isGasConfigured,
+  issueCertificate,
   registerParticipant,
-  submitFeedback,
-  verifyRegistrationCode,
 } from './api/sheetsApi'
 import Certificate, { downloadCertificate } from './components/Certificate'
 import './App.css'
+
+const GOOGLE_FORM_URL = import.meta.env.VITE_GOOGLE_FORM_URL || ''
 
 const INITIAL_REGISTRATION = {
   fullName: '',
@@ -15,14 +16,16 @@ const INITIAL_REGISTRATION = {
   phone: '',
 }
 
-const INITIAL_FEEDBACK = {
-  code: '',
-  rating: '',
-  comments: '',
+function getCodeFromUrl() {
+  return new URLSearchParams(window.location.search).get('code')?.trim() || ''
+}
+
+function shouldAutoDownload() {
+  return new URLSearchParams(window.location.search).get('download') === '1'
 }
 
 function App() {
-  const [page, setPage] = useState('register')
+  const [page, setPage] = useState(() => (getCodeFromUrl() ? 'certificate' : 'register'))
 
   return (
     <div className="app-shell">
@@ -43,14 +46,14 @@ function App() {
         </button>
         <button
           type="button"
-          className={page === 'feedback' ? 'nav-tab active' : 'nav-tab'}
-          onClick={() => setPage('feedback')}
+          className={page === 'certificate' ? 'nav-tab active' : 'nav-tab'}
+          onClick={() => setPage('certificate')}
         >
-          Feedback & Certificate
+          E-Certificate
         </button>
       </nav>
 
-      {page === 'register' ? <RegistrationPage /> : <FeedbackPage />}
+      {page === 'register' ? <RegistrationPage /> : <CertificatePage />}
     </div>
   )
 }
@@ -148,9 +151,18 @@ function RegistrationPage() {
           </div>
 
           <p className="registration-note">
-            Save this code. You will need it after the webinar to submit feedback and download
-            your e-certificate.
+            Save this code. After the webinar, submit the feedback Google Form using this code.
+            A personalized e-certificate link will be sent to your registered email automatically.
           </p>
+
+          {GOOGLE_FORM_URL && (
+            <p className="registration-note">
+              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                Open Feedback Form
+              </a>{' '}
+              (available after the webinar)
+            </p>
+          )}
 
           <div className="summary">
             <h2>Registration Details</h2>
@@ -263,21 +275,108 @@ function RegistrationPage() {
   )
 }
 
-function FeedbackPage() {
-  const [step, setStep] = useState('form')
-  const [form, setForm] = useState(INITIAL_FEEDBACK)
+function CertificatePage() {
+  const [step, setStep] = useState(() => (getCodeFromUrl() ? 'loading' : 'form'))
+  const [code, setCode] = useState(() => getCodeFromUrl())
   const [errors, setErrors] = useState({})
   const [certificateData, setCertificateData] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [downloadError, setDownloadError] = useState('')
+  const [feedbackRequired, setFeedbackRequired] = useState(false)
+  const [autoDownloadPending, setAutoDownloadPending] = useState(() => shouldAutoDownload())
+
+  async function fetchCertificate(registrationCode, options = {}) {
+    const { autoDownload = false } = options
+    setSubmitError('')
+    setFeedbackRequired(false)
+
+    const trimmedCode = registrationCode.trim()
+    if (!trimmedCode) {
+      setErrors({ code: 'Registration code is required.' })
+      setStep('form')
+      return
+    }
+
+    setSubmitting(true)
+    setStep('loading')
+
+    try {
+      const result = await issueCertificate(trimmedCode)
+
+      if (!result.success) {
+        setFeedbackRequired(Boolean(result.feedbackRequired))
+        setSubmitError(result.message || 'Unable to issue certificate.')
+        setStep('form')
+        return
+      }
+
+      setCertificateData(result)
+      setStep('certificate')
+      setAutoDownloadPending(autoDownload)
+
+      const url = new URL(window.location.href)
+      url.searchParams.set('code', result.registrationCode)
+      if (autoDownload) {
+        url.searchParams.set('download', '1')
+      }
+      window.history.replaceState({}, '', url)
+    } catch (error) {
+      setSubmitError(error.message || 'Unable to connect to Google Sheets.')
+      setStep('form')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
+    const codeFromUrl = getCodeFromUrl()
+    if (codeFromUrl) {
+      fetchCertificate(codeFromUrl, { autoDownload: shouldAutoDownload() })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!autoDownloadPending || step !== 'certificate' || !certificateData) {
+      return
+    }
+
+    let cancelled = false
+
+    async function runAutoDownload() {
+      setDownloading(true)
+      setDownloadError('')
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        if (!cancelled) {
+          await downloadCertificate()
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setDownloadError(error.message || 'Unable to download certificate. Please try again.')
+        }
+      } finally {
+        if (!cancelled) {
+          setDownloading(false)
+          setAutoDownloadPending(false)
+        }
+      }
+    }
+
+    runAutoDownload()
+
+    return () => {
+      cancelled = true
+    }
+  }, [autoDownloadPending, step, certificateData])
 
   function handleChange(event) {
-    const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }))
+    setCode(event.target.value)
+    if (errors.code) {
+      setErrors({})
     }
   }
 
@@ -294,74 +393,46 @@ function FeedbackPage() {
     }
   }
 
-  function validate() {
-    const nextErrors = {}
-
-    if (!form.code.trim()) {
-      nextErrors.code = 'Registration code is required.'
-    }
-
-    if (!form.rating) {
-      nextErrors.rating = 'Please select a rating.'
-    }
-
-    if (!form.comments.trim()) {
-      nextErrors.comments = 'Please enter your feedback.'
-    }
-
-    return nextErrors
-  }
-
   async function handleSubmit(event) {
     event.preventDefault()
-    setSubmitError('')
-
-    const nextErrors = validate()
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors)
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      const verification = await verifyRegistrationCode(form.code)
-
-      if (!verification.success || !verification.valid) {
-        setSubmitError(
-          verification.message ||
-            'Registration code not found. Only registered participants can submit feedback.',
-        )
-        return
-      }
-
-      const result = await submitFeedback({
-        code: form.code,
-        rating: Number(form.rating),
-        comments: form.comments,
-      })
-
-      if (!result.success) {
-        setSubmitError(result.message || 'Feedback submission failed.')
-        return
-      }
-
-      setCertificateData(result)
-      setStep('certificate')
-    } catch (error) {
-      setSubmitError(error.message || 'Unable to connect to Google Sheets.')
-    } finally {
-      setSubmitting(false)
-    }
+    setErrors({})
+    await fetchCertificate(code)
   }
 
   function handleReset() {
     setStep('form')
-    setForm(INITIAL_FEEDBACK)
+    setCode('')
     setErrors({})
     setCertificateData(null)
     setSubmitError('')
     setDownloadError('')
+    setFeedbackRequired(false)
+    setAutoDownloadPending(false)
+
+    const url = new URL(window.location.href)
+    url.searchParams.delete('code')
+    url.searchParams.delete('download')
+    window.history.replaceState({}, '', url)
+  }
+
+  if (step === 'loading') {
+    return (
+      <div className="page">
+        <header className="header">
+          <p className="eyebrow">After the Webinar</p>
+          <h1>Your E-Certificate</h1>
+          <p className="subtitle">
+            {submitting
+              ? 'Generating your e-certificate with your name and registration code...'
+              : 'Preparing your certificate...'}
+          </p>
+        </header>
+
+        <section className="card">
+          <p className="registration-note">Please wait a moment.</p>
+        </section>
+      </div>
+    )
   }
 
   if (step === 'certificate' && certificateData) {
@@ -376,7 +447,6 @@ function FeedbackPage() {
         <Certificate
           fullName={certificateData.fullName}
           registrationCode={certificateData.registrationCode}
-          organization={certificateData.organization}
         />
 
         <div className="certificate-actions">
@@ -389,7 +459,7 @@ function FeedbackPage() {
             {downloading ? 'Generating PDF...' : 'Download Certificate (PDF)'}
           </button>
           <button type="button" className="btn btn-secondary" onClick={handleReset}>
-            Submit Another Feedback
+            Get Another Certificate
           </button>
           {downloadError && <p className="form-error">{downloadError}</p>}
         </div>
@@ -401,10 +471,10 @@ function FeedbackPage() {
     <div className="page">
       <header className="header">
         <p className="eyebrow"></p>
-        <h1>Feedback & E-Certificate</h1>
-        <p className="subtitle">
-          Enter the registration code you received before the webinar. Your code will be
-          verified before your e-certificate is issued.
+        <h1>E-Certificate</h1>
+          <p className="subtitle">
+          Enter your registration code after submitting the feedback Google Form. A personalized
+          certificate link is also sent to your registered email automatically.
         </p>
       </header>
 
@@ -416,7 +486,7 @@ function FeedbackPage() {
               id="code"
               name="code"
               type="text"
-              value={form.code}
+              value={code}
               onChange={handleChange}
               placeholder="DUNONG-20260707-ABC123"
               autoComplete="off"
@@ -424,41 +494,18 @@ function FeedbackPage() {
             {errors.code && <span className="error">{errors.code}</span>}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="rating">Webinar Rating *</label>
-            <select
-              id="rating"
-              name="rating"
-              value={form.rating}
-              onChange={handleChange}
-            >
-              <option value="">Select a rating</option>
-              <option value="5">5 - Excellent</option>
-              <option value="4">4 - Good</option>
-              <option value="3">3 - Average</option>
-              <option value="2">2 - Fair</option>
-              <option value="1">1 - Poor</option>
-            </select>
-            {errors.rating && <span className="error">{errors.rating}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="comments">Your Feedback *</label>
-            <textarea
-              id="comments"
-              name="comments"
-              rows="5"
-              value={form.comments}
-              onChange={handleChange}
-              placeholder="Share what you learned and suggestions for future webinars."
-            />
-            {errors.comments && <span className="error">{errors.comments}</span>}
-          </div>
-
           {submitError && <p className="form-error">{submitError}</p>}
 
+          {feedbackRequired && GOOGLE_FORM_URL && (
+            <p className="registration-note">
+              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                Open Feedback Form
+              </a>
+            </p>
+          )}
+
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Verifying & Submitting...' : 'Submit Feedback & Get Certificate'}
+            {submitting ? 'Verifying...' : 'Get E-Certificate'}
           </button>
         </form>
       </section>

@@ -2,6 +2,17 @@
 const SPREADSHEET_ID = 'PASTE_YOUR_SPREADSHEET_ID_HERE';
 const SHEET_NAME = 'Registrations';
 
+// E-certificate page URL shown in Google Form confirmation (no trailing slash).
+// Example: https://your-site.vercel.app
+const CERTIFICATE_PAGE_URL = 'PASTE_YOUR_DEPLOYED_APP_URL_HERE';
+
+// Google Form response columns (0 = timestamp). Adjust if your form field order differs.
+const FORM_COL = {
+  REGISTRATION_CODE: 1,
+  RATING: 2,
+  COMMENTS: 3,
+};
+
 const HEADERS = [
   'Timestamp',
   'Registration Code',
@@ -14,6 +25,7 @@ const HEADERS = [
   'Rating',
   'Comments',
   'Certificate Issued',
+  'Certificate Link',
 ];
 
 const COL = {
@@ -28,6 +40,7 @@ const COL = {
   RATING: 9,
   COMMENTS: 10,
   CERTIFICATE_ISSUED: 11,
+  CERTIFICATE_LINK: 12,
 };
 
 function doGet(e) {
@@ -35,6 +48,10 @@ function doGet(e) {
 
   if (action === 'verify') {
     return jsonResponse(verifyRegistrationCode_(e.parameter.code || ''));
+  }
+
+  if (action === 'redirectCertificate') {
+    return redirectToCertificate_(e.parameter.code || '');
   }
 
   return jsonResponse({
@@ -61,6 +78,9 @@ function doPost(e) {
         break;
       case 'submitFeedback':
         result = submitFeedback_(data);
+        break;
+      case 'issueCertificate':
+        result = issueCertificate_(data.code);
         break;
       default:
         result = { success: false, message: 'Unknown action.' };
@@ -106,6 +126,7 @@ function registerParticipant_(data) {
     '',
     '',
     'No',
+    '',
   ]);
 
   return {
@@ -145,6 +166,226 @@ function verifyRegistrationCode_(code) {
     feedbackSubmitted: String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes',
     certificateIssued: String(row.values[COL.CERTIFICATE_ISSUED - 1]).toLowerCase() === 'yes',
   };
+}
+
+function buildCertificateUrl_(registrationCode, autoDownload) {
+  if (!CERTIFICATE_PAGE_URL || CERTIFICATE_PAGE_URL.indexOf('PASTE_YOUR') !== -1) {
+    return '';
+  }
+
+  const base = CERTIFICATE_PAGE_URL.replace(/\/$/, '');
+  const url =
+    base +
+    '/?code=' +
+    encodeURIComponent(registrationCode) +
+    (autoDownload ? '&download=1' : '');
+
+  return url;
+}
+
+function redirectToCertificate_(code) {
+  const registrationCode = String(code || '').trim().toUpperCase();
+  const certUrl = buildCertificateUrl_(registrationCode, true);
+
+  if (!certUrl) {
+    return HtmlService.createHtmlOutput(
+      '<p>Certificate page URL is not configured in Apps Script.</p>'
+    );
+  }
+
+  const safeUrl = certUrl.replace(/"/g, '&quot;');
+
+  return HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head>' +
+      '<meta charset="utf-8">' +
+      '<meta http-equiv="refresh" content="0;url=' +
+      safeUrl +
+      '">' +
+      '<title>Redirecting to your e-certificate</title>' +
+      '</head><body>' +
+      '<p>Redirecting to your e-certificate...</p>' +
+      '<p>If you are not redirected, <a href="' +
+      safeUrl +
+      '">click here</a>.</p>' +
+      '<script>window.location.replace("' +
+      safeUrl +
+      '");</script>' +
+      '</body></html>'
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function sendCertificateEmail_(email, fullName, certUrl, registrationCode) {
+  if (!email || !certUrl) {
+    return;
+  }
+
+  const subject = 'Your Dunong Webinar E-Certificate';
+  const htmlBody =
+    '<div style="font-family:Arial,sans-serif;line-height:1.5;color:#222;">' +
+    '<p>Hi <strong>' +
+    fullName +
+    '</strong>,</p>' +
+    '<p>Thank you for submitting your feedback for the Dunong Webinar.</p>' +
+    '<p>Your e-certificate is ready with your name and registration code <strong>' +
+    registrationCode +
+    '</strong>.</p>' +
+    '<p><a href="' +
+    certUrl +
+    '" style="display:inline-block;padding:12px 20px;background:#1a5f2a;color:#fff;text-decoration:none;border-radius:6px;">View &amp; Download E-Certificate</a></p>' +
+    '<p>Or copy this link:<br><a href="' +
+    certUrl +
+    '">' +
+    certUrl +
+    '</a></p>' +
+    '</div>';
+  const plainBody =
+    'Hi ' +
+    fullName +
+    ',\n\nThank you for submitting your feedback for the Dunong Webinar.\n\n' +
+    'Your e-certificate is ready with your name and registration code ' +
+    registrationCode +
+    '.\n\n' +
+    'Open this link to view and download your certificate:\n' +
+    certUrl;
+
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: plainBody,
+    htmlBody: htmlBody,
+  });
+}
+
+function issueCertificate_(code) {
+  const registrationCode = String(code || '').trim().toUpperCase();
+
+  if (!registrationCode) {
+    return { success: false, message: 'Registration code is required.' };
+  }
+
+  const row = findRowByCode_(registrationCode);
+
+  if (!row) {
+    return {
+      success: false,
+      message: 'Registration code not found. Only registered participants can receive a certificate.',
+    };
+  }
+
+  const feedbackSubmitted =
+    String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+
+  if (!feedbackSubmitted) {
+    return {
+      success: false,
+      feedbackRequired: true,
+      message:
+        'Feedback has not been submitted yet. Please complete the Google Form first, then return here for your e-certificate.',
+    };
+  }
+
+  const alreadyIssued =
+    String(row.values[COL.CERTIFICATE_ISSUED - 1]).toLowerCase() === 'yes';
+
+  if (!alreadyIssued) {
+    const sheet = getSheet_();
+    sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
+  }
+
+  return {
+    success: true,
+    registrationCode: row.values[COL.CODE - 1],
+    fullName: row.values[COL.FULL_NAME - 1],
+    certificateUrl: buildCertificateUrl_(row.values[COL.CODE - 1], true),
+    message: alreadyIssued
+      ? 'Your e-certificate is ready. You can download it again below.'
+      : 'Your e-certificate is ready. You can download it below.',
+  };
+}
+
+/**
+ * Installable trigger: Run when a Google Form response is submitted.
+ * In Apps Script: Triggers → Add trigger → onFormSubmit → From spreadsheet → On form submit.
+ *
+ * Expected form fields (in order):
+ * 1. Registration Code (short answer)
+ * 2. Webinar Rating (1–5)
+ * 3. Feedback Comments (paragraph)
+ */
+function onFormSubmit(e) {
+  const lock = LockService.getScriptLock();
+
+  try {
+    lock.waitLock(10000);
+
+    const responses = e.values;
+    const registrationCode = String(responses[FORM_COL.REGISTRATION_CODE] || '')
+      .trim()
+      .toUpperCase();
+    const ratingRaw = responses[FORM_COL.RATING];
+    const comments = String(responses[FORM_COL.COMMENTS] || '').trim();
+
+    if (!registrationCode) {
+      Logger.log('Form submit skipped: missing registration code.');
+      return;
+    }
+
+    const row = findRowByCode_(registrationCode);
+
+    if (!row) {
+      Logger.log('Form submit: registration code not found — ' + registrationCode);
+      return;
+    }
+
+    const alreadySubmitted =
+      String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+    const rating = parseRating_(ratingRaw);
+    const sheet = getSheet_();
+
+    if (!alreadySubmitted) {
+      sheet.getRange(row.rowNumber, COL.FEEDBACK_SUBMITTED).setValue('Yes');
+      sheet.getRange(row.rowNumber, COL.FEEDBACK_DATE).setValue(new Date());
+      if (rating) {
+        sheet.getRange(row.rowNumber, COL.RATING).setValue(rating);
+      }
+      if (comments) {
+        sheet.getRange(row.rowNumber, COL.COMMENTS).setValue(comments);
+      }
+    }
+
+    const certUrl = buildCertificateUrl_(registrationCode, true);
+    sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
+    if (certUrl) {
+      sheet.getRange(row.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
+    }
+
+    const fullName = row.values[COL.FULL_NAME - 1];
+    const email = row.values[COL.EMAIL - 1];
+
+    try {
+      sendCertificateEmail_(email, fullName, certUrl, registrationCode);
+    } catch (mailError) {
+      Logger.log('Certificate email failed for ' + registrationCode + ': ' + mailError.message);
+    }
+  } catch (error) {
+    Logger.log('onFormSubmit error: ' + error.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function parseRating_(value) {
+  const text = String(value || '').trim();
+  const leadingNumber = text.match(/^(\d)/);
+
+  if (leadingNumber) {
+    const rating = Number(leadingNumber[1]);
+    if (rating >= 1 && rating <= 5) {
+      return rating;
+    }
+  }
+
+  return '';
 }
 
 function submitFeedback_(data) {
@@ -249,6 +490,9 @@ function getSheet_() {
     sheet.appendRow(HEADERS);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
     sheet.setFrozenRows(1);
+  } else if (sheet.getLastColumn() < HEADERS.length) {
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
   }
 
   return sheet;

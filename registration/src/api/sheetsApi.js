@@ -45,12 +45,10 @@ export async function verifyRegistrationCode(code) {
   })
 }
 
-export async function submitFeedback({ code, rating, comments }) {
+export async function issueCertificate(code) {
   return callGas({
-    action: 'submitFeedback',
+    action: 'issueCertificate',
     code,
-    rating,
-    comments,
   })
 }
 

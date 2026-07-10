@@ -2,7 +2,7 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import './Certificate.css'
 
-export default function Certificate({ fullName, registrationCode, organization }) {
+export default function Certificate({ fullName, registrationCode }) {
   const issuedDate = new Date().toLocaleDateString('en-PH', {
     year: 'numeric',
     month: 'long',
@@ -17,10 +17,8 @@ export default function Certificate({ fullName, registrationCode, organization }
           <h2 className="certificate-title">DUNONG WEBINAR</h2>
           <p className="certificate-text">This is to certify that</p>
           <p className="certificate-name">{fullName}</p>
-          {organization && <p className="certificate-org">{organization}</p>}
           <p className="certificate-text">
-            has successfully participated in the Dunong Webinar and submitted the required
-            feedback.
+            has successfully participated in the Dunong Webinar.
           </p>
           <div className="certificate-meta">
             <div>
