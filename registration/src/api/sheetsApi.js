@@ -1,17 +1,33 @@
+const API_URL = '/api/gas'
 const GAS_URL = import.meta.env.VITE_GAS_WEB_APP_URL
 
-function ensureConfigured() {
+function ensureDirectGasConfigured() {
   if (!GAS_URL || GAS_URL.includes('PASTE_YOUR')) {
     throw new Error(
-      'Google Apps Script URL is not configured. Add VITE_GAS_WEB_APP_URL to your .env file.',
+      'Google Apps Script URL is not configured. Set VITE_GAS_WEB_APP_URL in your environment (Vercel project settings for production).',
     )
   }
 }
 
-async function callGas(payload) {
-  ensureConfigured()
+async function parseGasResponse(response) {
+  const text = await response.text()
 
-  const response = await fetch(GAS_URL, {
+  try {
+    const data = JSON.parse(text)
+    if (!response.ok && data.message) {
+      throw new Error(data.message)
+    }
+    return data
+  } catch (error) {
+    if (error instanceof Error && !error.message.startsWith('Unexpected response')) {
+      throw error
+    }
+    throw new Error('Unexpected response from Google Apps Script.')
+  }
+}
+
+async function postToUrl(url, payload) {
+  const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(payload),
     headers: {
@@ -19,12 +35,40 @@ async function callGas(payload) {
     },
   })
 
-  const text = await response.text()
+  return parseGasResponse(response)
+}
+
+async function callGas(payload) {
+  const requestOptions = {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+  }
+
+  // Try server-side proxy first (Vercel api/gas.js or Vite dev middleware).
+  // This works even when VITE_GAS_WEB_APP_URL is only set server-side.
+  try {
+    const proxyResponse = await fetch(API_URL, requestOptions)
+    if (proxyResponse.status !== 404) {
+      return parseGasResponse(proxyResponse)
+    }
+  } catch {
+    // Proxy unavailable — fall back to direct GAS call.
+  }
+
+  ensureDirectGasConfigured()
 
   try {
-    return JSON.parse(text)
-  } catch {
-    throw new Error('Unexpected response from Google Apps Script.')
+    return await postToUrl(GAS_URL, payload)
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        'Unable to connect to the registration server. Check your internet connection and try again.',
+      )
+    }
+    throw error
   }
 }
 
@@ -55,5 +99,10 @@ export async function issueCertificate(code) {
 }
 
 export function isGasConfigured() {
+  // In production, /api/gas reads GAS_WEB_APP_URL server-side on Vercel.
+  if (import.meta.env.PROD) {
+    return true
+  }
+
   return Boolean(GAS_URL && !GAS_URL.includes('PASTE_YOUR'))
 }

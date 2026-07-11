@@ -79,12 +79,14 @@ Create **two projects** from the same repo, root directory `registration`:
 | `dunong-register` | `register` | Before & during sign-up period |
 | `dunong-certificate` | `certificate` | After webinar (also set as `CERTIFICATE_PAGE_URL`) |
 
-Both projects need:
+Both projects need (in Vercel → Settings → Environment Variables):
 
 ```
 VITE_GAS_WEB_APP_URL=https://script.google.com/macros/s/YOUR_ID/exec
 VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/YOUR_FORM_ID/viewform
 ```
+
+You can also set `GAS_WEB_APP_URL` instead of `VITE_GAS_WEB_APP_URL` — the `/api/gas` serverless function accepts either. Redeploy after adding env vars.
 
 ### A5. Feedback Google Form (see Part B below)
 
@@ -160,21 +162,29 @@ You may add more questions **after** question 4 (e.g. "What did you learn?", "Wo
 ### B3. Form confirmation message
 
 1. **Settings** (gear) → **Presentation**.
-2. **Confirmation message** → **Custom**. Example (replace with your certificate URL):
+2. **Confirmation message** → **Custom**. Example:
 
 ```
 Thank you for your feedback!
 
-Your e-certificate is ready. Open this link to claim it:
-
-https://your-certificate-site.vercel.app
-
-Click "Claim Certificate" on that page. Your certificate will show your full name and registration code from your registration.
-
-A personalized claim link has also been sent to the email you used when you registered.
+Your e-certificate is loading automatically. If you are not redirected, check the email you used when you registered for a personalized download link.
 ```
 
-3. Optional: **Go to a webpage** → `https://your-certificate-site.vercel.app`
+3. **Go to a webpage** (recommended) — use your Apps Script redirect URL so participants land on their certificate without typing a code:
+
+```
+https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec?action=redirectCertificate&latest=1
+```
+
+Replace `YOUR_DEPLOYMENT_ID` with the same ID as `VITE_GAS_WEB_APP_URL`. After each form submit, Apps Script caches that participant's registration code for a few minutes and redirects them to:
+
+```
+https://your-certificate-site.vercel.app/?code=DUNONG-20260711-ABC123
+```
+
+The certificate page loads automatically with their registered **full name** and **URN** (registration code). They only need to click **Download Certificate (PDF)**.
+
+> **Note:** If two people submit feedback within seconds of each other, the redirect may briefly point to the wrong certificate. The personalized email link is always correct — tell participants to use that if the redirect seems wrong.
 
 ### B4. Install the form submit trigger
 

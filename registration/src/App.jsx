@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   isGasConfigured,
   issueCertificate,
@@ -374,16 +374,17 @@ function CertificateUnavailablePage() {
 
 function CertificatePage() {
   const codeFromUrl = getCodeFromUrl()
-  const [step, setStep] = useState(() => (codeFromUrl ? 'claim' : 'form'))
+  const [step, setStep] = useState(() => (codeFromUrl ? 'loading' : 'form'))
   const [code, setCode] = useState(() => codeFromUrl)
   const [errors, setErrors] = useState({})
   const [certificateData, setCertificateData] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [submitting, setSubmitting] = useState(Boolean(codeFromUrl))
   const [downloading, setDownloading] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [downloadError, setDownloadError] = useState('')
   const [feedbackRequired, setFeedbackRequired] = useState(false)
   const [autoDownloadPending, setAutoDownloadPending] = useState(false)
+  const autoClaimStarted = useRef(false)
 
   async function fetchCertificate(registrationCode, options = {}) {
     const { autoDownload = false } = options
@@ -406,7 +407,8 @@ function CertificatePage() {
       if (!result.success) {
         setFeedbackRequired(Boolean(result.feedbackRequired))
         setSubmitError(result.message || 'Unable to issue certificate.')
-        setStep(codeFromUrl ? 'claim' : 'form')
+        setStep('form')
+        setCode(trimmedCode)
         return
       }
 
@@ -424,11 +426,21 @@ function CertificatePage() {
       window.history.replaceState({}, '', url)
     } catch (error) {
       setSubmitError(error.message || 'Unable to connect to Google Sheets.')
-      setStep(codeFromUrl ? 'claim' : 'form')
+      setStep('form')
+      setCode(trimmedCode)
     } finally {
       setSubmitting(false)
     }
   }
+
+  useEffect(() => {
+    if (!codeFromUrl || autoClaimStarted.current) {
+      return
+    }
+
+    autoClaimStarted.current = true
+    fetchCertificate(codeFromUrl, { autoDownload: shouldAutoDownload() })
+  }, [codeFromUrl])
 
   useEffect(() => {
     if (!autoDownloadPending || step !== 'certificate' || !certificateData) {
@@ -491,11 +503,6 @@ function CertificatePage() {
     await fetchCertificate(code)
   }
 
-  async function handleClaim() {
-    setErrors({})
-    await fetchCertificate(code, { autoDownload: shouldAutoDownload() })
-  }
-
   function handleReset() {
     setStep('form')
     setCode('')
@@ -532,55 +539,15 @@ function CertificatePage() {
     )
   }
 
-  if (step === 'claim') {
-    return (
-      <div className="page">
-        <header className="header">
-          <p className="eyebrow">After the Webinar</p>
-          <h1>Claim Your E-Certificate</h1>
-          <p className="subtitle">
-            Your feedback has been received. Click the button below to claim your personalized
-            e-certificate with your full name and registration code — no need to enter your code
-            again.
-          </p>
-        </header>
-
-        <section className="card claim-card">
-          <div className="registration-number-box">
-            <span className="registration-label">Your Registration Code</span>
-            <span className="registration-number">{code}</span>
-          </div>
-
-          {submitError && <p className="form-error">{submitError}</p>}
-
-          {feedbackRequired && GOOGLE_FORM_URL && (
-            <p className="registration-note">
-              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
-                Open Feedback Form
-              </a>
-            </p>
-          )}
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleClaim}
-            disabled={submitting}
-          >
-            {submitting ? 'Claiming Certificate...' : 'Claim Certificate'}
-          </button>
-        </section>
-      </div>
-    )
-  }
-
   if (step === 'certificate' && certificateData) {
     return (
       <div className="page">
         <header className="header">
           <p className="eyebrow">After the Webinar</p>
           <h1>Your E-Certificate</h1>
-          <p className="subtitle">{certificateData.message}</p>
+          <p className="subtitle">
+            {certificateData.fullName} — URN: {certificateData.registrationCode}
+          </p>
         </header>
 
         <Certificate
@@ -612,8 +579,8 @@ function CertificatePage() {
         <p className="eyebrow"></p>
         <h1>E-Certificate</h1>
           <p className="subtitle">
-          Enter your registration code after submitting the feedback Google Form. A personalized
-          claim link is also sent to your registered email after you submit feedback.
+          Enter your registration code after submitting the feedback Google Form, or use the
+          personalized link from your confirmation email — your certificate loads automatically.
         </p>
       </header>
 

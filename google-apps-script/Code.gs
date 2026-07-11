@@ -52,7 +52,15 @@ function doGet(e) {
   }
 
   if (action === 'redirectCertificate') {
-    return redirectToCertificate_(e.parameter.code || '');
+    let code = e.parameter.code || '';
+
+    // Used by Google Form "Go to a webpage" after submit (static URL for all users).
+    // onFormSubmit caches the submitter's code for a few minutes before redirect.
+    if (!code && e.parameter.latest === '1') {
+      code = CacheService.getScriptCache().get('latestCertCode') || '';
+    }
+
+    return redirectToCertificate_(code);
   }
 
   return jsonResponse({
@@ -371,6 +379,10 @@ function onFormSubmit(e) {
     }
 
     const certUrl = buildCertificateUrl_(registrationCode, false);
+
+    // Brief cache so the form confirmation redirect can resolve the latest submitter.
+    CacheService.getScriptCache().put('latestCertCode', registrationCode, 300);
+
     sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
     if (certUrl) {
       sheet.getRange(row.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
