@@ -100,6 +100,13 @@ export async function verifyRegistrationCode(code) {
   })
 }
 
+export async function checkCertificateStatus(code) {
+  return callGas({
+    action: 'checkCertificateStatus',
+    code,
+  })
+}
+
 export async function issueCertificate(code) {
   return callGas({
     action: 'issueCertificate',

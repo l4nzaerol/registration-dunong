@@ -103,6 +103,9 @@ function doPost(e) {
       case 'issueCertificate':
         result = issueCertificate_(data.code);
         break;
+      case 'checkCertificateStatus':
+        result = checkCertificateStatus_(data.code);
+        break;
       default:
         result = { success: false, message: 'Unknown action.' };
     }
@@ -277,6 +280,83 @@ function sendCertificateEmail_(email, fullName, certUrl, registrationCode) {
   });
 }
 
+function checkCertificateStatus_(code) {
+  const registrationCode = String(code || '').trim().toUpperCase();
+
+  if (!registrationCode) {
+    return { success: false, valid: false, message: 'Registration code is required.' };
+  }
+
+  const row = findRowByCode_(registrationCode);
+
+  if (!row) {
+    return {
+      success: true,
+      valid: false,
+      message: 'Registration code not found. Please check and try again.',
+    };
+  }
+
+  const fullName = String(row.values[COL.FULL_NAME - 1] || '').trim();
+  const codeValue = String(row.values[COL.CODE - 1] || '').trim().toUpperCase();
+  let feedbackSubmitted =
+    String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+
+  if (feedbackSubmitted) {
+    return {
+      success: true,
+      valid: true,
+      ready: true,
+      feedbackSubmitted: true,
+      pendingFeedback: false,
+      registrationCode: codeValue,
+      fullName: fullName,
+    };
+  }
+
+  const formRow = findFormResponseRow_(registrationCode);
+
+  if (!formRow) {
+    return {
+      success: true,
+      valid: true,
+      ready: false,
+      feedbackSubmitted: false,
+      feedbackRequired: true,
+      pendingFeedback: false,
+      registrationCode: codeValue,
+      fullName: fullName,
+      message:
+        'You need to submit the feedback Google Form before claiming your e-certificate.',
+    };
+  }
+
+  if (syncFeedbackFromFormResponses_(registrationCode)) {
+    return {
+      success: true,
+      valid: true,
+      ready: true,
+      feedbackSubmitted: true,
+      pendingFeedback: false,
+      registrationCode: codeValue,
+      fullName: fullName,
+    };
+  }
+
+  return {
+    success: true,
+    valid: true,
+    ready: false,
+    feedbackSubmitted: false,
+    feedbackRequired: true,
+    pendingFeedback: true,
+    registrationCode: codeValue,
+    fullName: fullName,
+    message:
+      'Your feedback was received and is still being processed. Please wait a moment and try again.',
+  };
+}
+
 function issueCertificate_(code) {
   const registrationCode = String(code || '').trim().toUpperCase();
 
@@ -309,7 +389,7 @@ function issueCertificate_(code) {
       feedbackRequired: true,
       pendingFeedback: hasFormResponseForCode_(registrationCode),
       message:
-        'Feedback has not been submitted yet. Please complete the Google Form first, then return here for your e-certificate.',
+        'You need to submit the feedback Google Form before claiming your e-certificate.',
     };
   }
 
@@ -541,17 +621,19 @@ function findFormResponseRow_(registrationCode) {
     return null;
   }
 
-  const numCols = Math.max(formSheet.getLastColumn(), FORM_COL.COMMENTS + 1);
-  const values = formSheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+  const codeCol = FORM_COL.REGISTRATION_CODE + 1;
+  const numRows = lastRow - 1;
+  const codes = formSheet.getRange(2, codeCol, numRows, 1).getValues();
 
-  for (let i = values.length - 1; i >= 0; i--) {
-    const row = values[i];
-    const code = String(row[FORM_COL.REGISTRATION_CODE] || '')
+  for (let i = codes.length - 1; i >= 0; i--) {
+    const code = String(codes[i][0] || '')
       .trim()
       .toUpperCase();
 
     if (code === registrationCode) {
-      return row;
+      const rowNumber = i + 2;
+      const numCols = Math.max(formSheet.getLastColumn(), FORM_COL.COMMENTS + 1);
+      return formSheet.getRange(rowNumber, 1, 1, numCols).getValues()[0];
     }
   }
 

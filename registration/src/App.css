@@ -3,32 +3,37 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48px 24px 64px;
-  gap: 32px;
+  padding: 40px 20px 56px;
+  gap: 28px;
   background:
-    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
-    url('/background.png') center / cover no-repeat;
+    linear-gradient(180deg, rgba(10, 2, 4, 0.35) 0%, rgba(10, 2, 4, 0.55) 100%),
+    url('/background.png') center / cover no-repeat fixed;
   min-height: calc(100svh - 57px);
+}
 
-  @media (max-width: 1024px) {
-    padding: 32px 20px 48px;
-    gap: 24px;
-  }
+.header {
+  width: 100%;
+  max-width: 560px;
+  text-align: center;
 }
 
 .page .header .eyebrow {
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  color: rgba(255, 210, 210, 0.88);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
 }
 
 .page .header h1 {
   color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.45);
 }
 
 .page .header .subtitle {
-  color: rgba(255, 255, 255, 0.92);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 240, 240, 0.88);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
+  font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+  line-height: 1.55;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .app-shell {
@@ -38,96 +43,215 @@
 }
 
 .config-banner {
-  background: #fff5f5;
+  background: rgba(40, 8, 12, 0.92);
   border-bottom: 1px solid var(--border);
   color: var(--text-h);
-  font-size: 14px;
-  padding: 12px 20px;
+  font-size: 13px;
+  padding: 10px 16px;
   text-align: center;
 }
 
 .nav-tabs {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding: 16px 20px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(247, 49, 49, 0.55);
-  backdrop-filter: blur(8px);
+  gap: 4px;
+  padding: 14px 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 4, 6, 0.72);
+  backdrop-filter: blur(16px);
 }
 
 .nav-tab {
   font: inherit;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 10px 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 20px;
   border: none;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 220, 220, 0.55);
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
 
   &.active {
     color: #fff;
-    border-bottom-color: #fff;
+    border-bottom-color: var(--accent);
   }
 
   &:hover {
-    color: #fff;
+    color: rgba(255, 240, 240, 0.92);
   }
-}
-
-.header {
-  max-width: 640px;
 }
 
 .eyebrow {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
+  color: rgba(255, 190, 190, 0.82);
+  margin-bottom: 10px;
 }
 
 .subtitle {
-  font-size: 18px;
-  line-height: 1.5;
-  max-width: 520px;
-  margin: 0 auto;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
+/* ── Glass card system ── */
 .card {
+  position: relative;
   width: 100%;
-  max-width: 720px;
-  background: rgba(255, 255, 255, 0.95);
+  max-width: 520px;
+  overflow: hidden;
+  background: var(--bg-glass);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
+  border-radius: 20px;
+  padding: 0;
   text-align: left;
-  box-sizing: border-box;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-
-  @media (max-width: 1024px) {
-    padding: 24px 20px;
-  }
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
 }
 
-.registration-form {
+.card--wide {
+  max-width: 640px;
+}
+
+.card-accent {
+  display: block;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent) 20%,
+    #ff8a6a 50%,
+    var(--accent) 80%,
+    transparent 100%
+  );
+  opacity: 0.9;
+}
+
+.card-inner {
+  padding: 32px 28px 28px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 170, 170, 0.72);
+  text-align: center;
+  margin: 0;
+}
+
+.card-title {
+  font-family: var(--heading);
+  font-size: clamp(1.35rem, 3.5vw, 1.65rem);
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: center;
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.card-desc {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  text-align: center;
+  margin: -8px 0 0;
+}
+
+.card-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 160, 160, 0.22),
+    transparent
+  );
+  margin: 0;
+  border: none;
+}
+
+/* ── Claim certificate card (unique) ── */
+.card--claim .card-inner {
+  align-items: stretch;
+  gap: 18px;
+}
+
+.code-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.code-input-wrap label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 190, 190, 0.75);
+  text-align: center;
+}
+
+.code-input {
+  font-family: var(--mono);
+  font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--bg-input);
+  color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &::placeholder {
+    color: rgba(255, 200, 200, 0.28);
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 100, 100, 0.55);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+}
+
+.card-footnote {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.card-footnote a {
+  font-weight: 500;
+}
+
+/* ── Forms ── */
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -141,64 +265,55 @@
 }
 
 .form-group label {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-h);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 190, 190, 0.72);
 }
 
-.form-group input {
+.form-group input,
+.form-group select,
+.form-group textarea {
   font: inherit;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
+  border-radius: 10px;
+  background: var(--bg-input);
   color: var(--text-h);
   transition: border-color 0.2s, box-shadow 0.2s;
 
   &::placeholder {
-    color: var(--text);
-    opacity: 0.6;
+    color: rgba(255, 200, 200, 0.28);
   }
 
   &:focus {
     outline: none;
-    border-color: var(--accent-border);
-    box-shadow: 0 0 0 3px var(--accent-bg);
-  }
-}
-
-.form-group select,
-.form-group textarea {
-  font: inherit;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-h);
-  transition: border-color 0.2s, box-shadow 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent-border);
-    box-shadow: 0 0 0 3px var(--accent-bg);
+    border-color: rgba(255, 100, 100, 0.5);
+    box-shadow: 0 0 0 3px var(--accent-glow);
   }
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 110px;
 }
 
 .error {
-  font-size: 13px;
-  color: #dc2626;
+  font-size: 12px;
+  color: #ff9a9a;
 }
 
 .form-error {
-  font-size: 14px;
-  color: #dc2626;
+  font-size: 0.88rem;
+  color: #ffb0b0;
   text-align: center;
   margin: 0;
+  padding: 10px 14px;
+  background: rgba(180, 20, 30, 0.22);
+  border: 1px solid rgba(255, 100, 100, 0.22);
+  border-radius: 10px;
+  line-height: 1.45;
 }
 
 .verified-note {
@@ -207,6 +322,7 @@
   margin: 0;
 }
 
+/* ── Buttons ── */
 .certificate-actions {
   display: flex;
   gap: 12px;
@@ -223,99 +339,60 @@
 
 .btn {
   font: inherit;
-  font-size: 16px;
-  font-weight: 500;
-  padding: 12px 24px;
-  border-radius: 8px;
-  border: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border-radius: 10px;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: transform 0.15s, box-shadow 0.2s, background 0.2s, border-color 0.2s;
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.55;
     cursor: not-allowed;
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid rgba(255, 160, 160, 0.8);
     outline-offset: 2px;
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(1px);
   }
 }
 
 .btn-primary {
-  align-self: center;
+  width: 100%;
   color: #fff;
-  background: var(--accent);
-  margin-top: 4px;
+  background: linear-gradient(135deg, #f73131 0%, #c8102e 100%);
+  box-shadow: 0 8px 24px rgba(200, 16, 46, 0.35);
 
-  &:hover {
-    box-shadow: var(--shadow);
-    background: #a50d26;
+  &:hover:not(:disabled) {
+    box-shadow: 0 12px 28px rgba(247, 49, 49, 0.42);
+    background: linear-gradient(135deg, #ff4545 0%, #d81838 100%);
   }
 }
 
 .btn-secondary {
   color: var(--text-h);
-  background: var(--bg);
-  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-strong);
 
-  &:hover {
-    border-color: var(--accent-border);
-    background: var(--accent-bg);
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 160, 160, 0.45);
   }
-}
-
-.success-card {
-  text-align: center;
-}
-
-.success-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.success-message {
-  font-size: 18px;
-  margin-bottom: 28px;
-
-  strong {
-    color: var(--text-h);
-  }
-}
-
-.registration-number-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 24px;
-  margin-bottom: 16px;
-  background: var(--bg);
-  border: 2px dashed var(--accent-border);
-  border-radius: 10px;
-}
-
-.registration-code-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
 }
 
 .btn-copy {
-  font-size: 14px;
-  padding: 8px 16px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 8px 14px;
   color: var(--text-h);
-  background: var(--bg);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
@@ -327,62 +404,117 @@
   }
 }
 
-.claim-card {
+/* ── Success card ── */
+.success-card .card-inner {
   text-align: center;
+  align-items: center;
+}
+
+.success-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f73131, #c8102e);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(247, 49, 49, 0.35);
+}
+
+.success-card h1 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin: 0;
+}
+
+.success-message {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 420px;
+
+  strong {
+    color: var(--text-h);
+  }
+}
+
+.registration-number-box {
+  width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+}
+
+.registration-code-row {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 10px;
 }
 
 .registration-label {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text);
+  color: rgba(255, 180, 180, 0.65);
 }
 
 .registration-number {
   font-family: var(--mono);
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--accent);
+  font-size: clamp(1.15rem, 4vw, 1.65rem);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #fff;
   word-break: break-all;
-
-  @media (max-width: 1024px) {
-    font-size: 22px;
-  }
 }
 
 .registration-note {
-  font-size: 14px;
-  margin-bottom: 28px;
-  opacity: 0.85;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
 }
 
 .summary {
+  width: 100%;
   text-align: left;
-  margin-bottom: 28px;
-  padding-top: 24px;
+  padding-top: 4px;
   border-top: 1px solid var(--border);
 
   h2 {
-    font-size: 18px;
-    margin-bottom: 16px;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 190, 190, 0.75);
+    margin-bottom: 14px;
+    text-align: center;
   }
 
   dl {
     margin: 0;
     display: grid;
-    gap: 12px;
+    gap: 10px;
   }
 
   dl > div {
     display: grid;
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 100px 1fr;
     gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:last-child {
+      border-bottom: none;
+    }
 
     @media (max-width: 480px) {
       grid-template-columns: 1fr;
@@ -391,13 +523,57 @@
   }
 
   dt {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    color: var(--text);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 180, 180, 0.55);
   }
 
   dd {
     margin: 0;
     color: var(--text-h);
+    font-size: 0.95rem;
+  }
+}
+
+/* ── Loading card ── */
+.loading-card .card-inner {
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 36px 28px;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(255, 160, 160, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 340px;
+}
+
+@media (max-width: 1024px) {
+  .page {
+    padding: 28px 16px 44px;
+    gap: 22px;
+  }
+
+  .card-inner {
+    padding: 26px 20px 22px;
   }
 }

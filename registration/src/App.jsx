@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   isGasConfigured,
+  checkCertificateStatus,
   issueCertificate,
   registerParticipant,
 } from './api/sheetsApi'
@@ -12,6 +13,25 @@ const APP_MODE = import.meta.env.VITE_APP_MODE || 'both'
 const IS_REGISTER_ONLY = APP_MODE === 'register'
 const IS_CERTIFICATE_ONLY = APP_MODE === 'certificate'
 const SHOW_BOTH_TABS = APP_MODE === 'both'
+
+const LOADING_COPY = {
+  checking: {
+    subtitle: 'Checking your registration code and feedback status...',
+    note: 'Verifying that you are registered and have submitted the feedback form.',
+  },
+  processing: {
+    subtitle: 'Your feedback was received. Finalizing your e-certificate...',
+    note: 'Your Google Form submission is being confirmed. This usually takes a few seconds.',
+  },
+  preparing: {
+    subtitle: 'Preparing your e-certificate...',
+    note: 'Loading your certificate with your registered name and URN.',
+  },
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 const INITIAL_REGISTRATION = {
   fullName: '',
@@ -206,62 +226,68 @@ function RegistrationPage() {
   if (registration) {
     return (
       <div className="page">
-        <section className="card success-card">
-          <div className="success-icon" aria-hidden="true">
-            ✓
-          </div>
-          <h1>Registration Successful</h1>
-          <p className="success-message">
-            Thank you, <strong>{registration.fullName}</strong>. You are registered for the
-            Dunong Webinar.
-          </p>
-
-          <div className="registration-number-box">
-            <span className="registration-label">Your Registration Code</span>
-            <div className="registration-code-row">
-              <span className="registration-number">{registration.registrationCode}</span>
-              <CopyCodeButton code={registration.registrationCode} />
+        <section className="card card--wide success-card">
+          <span className="card-accent" aria-hidden="true" />
+          <div className="card-inner">
+            <div className="success-icon" aria-hidden="true">
+              ✓
             </div>
-          </div>
-
-          <p className="registration-note">
-            Save this code. After the webinar, submit the feedback Google Form using this code.
-            A personalized e-certificate claim link will be sent to your registered email and shown
-            in the form confirmation message.
-          </p>
-
-          {GOOGLE_FORM_URL && (
-            <p className="registration-note">
-              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
-                Open Feedback Form
-              </a>{' '}
-              (available after the webinar)
+            <p className="card-label">Registration Complete</p>
+            <h1>Registration Successful</h1>
+            <p className="success-message">
+              Thank you, <strong>{registration.fullName}</strong>. You are registered for the
+              Dunong Webinar.
             </p>
-          )}
 
-          <div className="summary">
-            <h2>Registration Details</h2>
-            <dl>
-              <div>
-                <dt>Email</dt>
-                <dd>{registration.email}</dd>
+            <div className="registration-number-box">
+              <span className="registration-label">Your Registration Code</span>
+              <div className="registration-code-row">
+                <span className="registration-number">{registration.registrationCode}</span>
+                <CopyCodeButton code={registration.registrationCode} />
               </div>
-              <div>
-                <dt>Address</dt>
-                <dd>{registration.address}</dd>
-              </div>
-              {registration.phone && (
+            </div>
+
+            <p className="registration-note">
+              Save this code. After the webinar, submit the feedback Google Form using this code.
+              A personalized e-certificate claim link will be sent to your registered email and
+              shown in the form confirmation message.
+            </p>
+
+            {GOOGLE_FORM_URL && (
+              <p className="registration-note">
+                <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                  Open Feedback Form
+                </a>{' '}
+                (available after the webinar)
+              </p>
+            )}
+
+            <hr className="card-divider" />
+
+            <div className="summary">
+              <h2>Registration Details</h2>
+              <dl>
                 <div>
-                  <dt>Phone</dt>
-                  <dd>{registration.phone}</dd>
+                  <dt>Email</dt>
+                  <dd>{registration.email}</dd>
                 </div>
-              )}
-            </dl>
-          </div>
+                <div>
+                  <dt>Address</dt>
+                  <dd>{registration.address}</dd>
+                </div>
+                {registration.phone && (
+                  <div>
+                    <dt>Phone</dt>
+                    <dd>{registration.phone}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
 
-          <button type="button" className="btn btn-secondary" onClick={handleRegisterAnother}>
-            Register Another Person
-          </button>
+            <button type="button" className="btn btn-secondary" onClick={handleRegisterAnother}>
+              Register Another Person
+            </button>
+          </div>
         </section>
       </div>
     )
@@ -277,8 +303,16 @@ function RegistrationPage() {
         </p>
       </header>
 
-      <section className="card">
-        <form className="registration-form" onSubmit={handleSubmit} noValidate>
+      <section className="card card--wide">
+        <span className="card-accent" aria-hidden="true" />
+        <div className="card-inner">
+          <p className="card-label">Webinar Registration</p>
+          <h2 className="card-title">Participant Details</h2>
+          <p className="card-desc">Fill in your information to register for the Dunong Webinar.</p>
+
+          <hr className="card-divider" />
+
+          <form className="registration-form" onSubmit={handleSubmit} noValidate>
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="fullName">Full Name *</label>
@@ -345,6 +379,7 @@ function RegistrationPage() {
             {submitting ? 'Saving Registration...' : 'Complete Registration'}
           </button>
         </form>
+        </div>
       </section>
     </div>
   )
@@ -363,10 +398,14 @@ function CertificateUnavailablePage() {
       </header>
 
       <section className="card">
-        <p className="registration-note">
-          Your registration code <strong>{getCodeFromUrl()}</strong> is saved. Use the certificate
-          site once feedback has been submitted.
-        </p>
+        <span className="card-accent" aria-hidden="true" />
+        <div className="card-inner">
+          <p className="card-label">Certificate Pending</p>
+          <p className="registration-note">
+            Your registration code <strong>{getCodeFromUrl()}</strong> is saved. Use the certificate
+            site once feedback has been submitted.
+          </p>
+        </div>
       </section>
     </div>
   )
@@ -383,7 +422,7 @@ function CertificatePage() {
   const [submitError, setSubmitError] = useState('')
   const [downloadError, setDownloadError] = useState('')
   const [feedbackRequired, setFeedbackRequired] = useState(false)
-  const [processingFeedback, setProcessingFeedback] = useState(false)
+  const [loadingStatus, setLoadingStatus] = useState('checking')
   const [autoDownloadPending, setAutoDownloadPending] = useState(false)
   const autoClaimStarted = useRef(false)
 
@@ -391,7 +430,6 @@ function CertificatePage() {
     const { autoDownload = false, retryOnFeedback = true } = options
     setSubmitError('')
     setFeedbackRequired(false)
-    setProcessingFeedback(false)
 
     const trimmedCode = registrationCode.trim()
     if (!trimmedCode) {
@@ -401,25 +439,52 @@ function CertificatePage() {
     }
 
     setSubmitting(true)
+    setLoadingStatus('checking')
     setStep('loading')
 
     try {
-      let result = await issueCertificate(trimmedCode)
+      let status = await checkCertificateStatus(trimmedCode)
 
-      if (!result.success && result.feedbackRequired && retryOnFeedback) {
-        setProcessingFeedback(true)
+      if (!status.success) {
+        setSubmitError(status.message || 'Unable to verify your registration.')
+        setStep('form')
+        setCode(trimmedCode)
+        return
+      }
 
-        for (let attempt = 0; attempt < 6; attempt += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 2500))
-          result = await issueCertificate(trimmedCode)
+      if (!status.valid) {
+        setSubmitError(status.message || 'Registration code not found. Please check and try again.')
+        setStep('form')
+        setCode(trimmedCode)
+        return
+      }
 
-          if (result.success || !result.feedbackRequired) {
+      if (!status.ready && status.pendingFeedback && retryOnFeedback) {
+        setLoadingStatus('processing')
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          await wait(1200)
+          status = await checkCertificateStatus(trimmedCode)
+
+          if (status.ready || !status.pendingFeedback) {
             break
           }
         }
-
-        setProcessingFeedback(false)
       }
+
+      if (!status.ready) {
+        setFeedbackRequired(Boolean(status.feedbackRequired))
+        setSubmitError(
+          status.message ||
+            'You need to submit the feedback Google Form before claiming your e-certificate.',
+        )
+        setStep('form')
+        setCode(trimmedCode)
+        return
+      }
+
+      setLoadingStatus('preparing')
+      const result = await issueCertificate(trimmedCode)
 
       if (!result.success) {
         setFeedbackRequired(Boolean(result.feedbackRequired))
@@ -442,12 +507,12 @@ function CertificatePage() {
       }
       window.history.replaceState({}, '', url)
     } catch (error) {
-      setProcessingFeedback(false)
       setSubmitError(error.message || 'Unable to connect to Google Sheets.')
       setStep('form')
       setCode(trimmedCode)
     } finally {
       setSubmitting(false)
+      setLoadingStatus('checking')
     }
   }
 
@@ -529,7 +594,7 @@ function CertificatePage() {
     setSubmitError('')
     setDownloadError('')
     setFeedbackRequired(false)
-    setProcessingFeedback(false)
+    setLoadingStatus('checking')
     setAutoDownloadPending(false)
 
     const url = new URL(window.location.href)
@@ -539,22 +604,22 @@ function CertificatePage() {
   }
 
   if (step === 'loading') {
+    const loadingCopy = LOADING_COPY[loadingStatus] || LOADING_COPY.checking
+
     return (
       <div className="page">
         <header className="header">
           <p className="eyebrow">After the Webinar</p>
           <h1>Your E-Certificate</h1>
-          <p className="subtitle">
-            {processingFeedback
-              ? 'Your feedback was received. Finalizing your e-certificate...'
-              : submitting
-                ? 'Generating your e-certificate with your name and registration code...'
-                : 'Preparing your certificate...'}
-          </p>
+          <p className="subtitle">{loadingCopy.subtitle}</p>
         </header>
 
-        <section className="card">
-          <p className="registration-note">Please wait a moment.</p>
+        <section className="card loading-card">
+          <span className="card-accent" aria-hidden="true" />
+          <div className="card-inner">
+            <div className="loading-spinner" aria-hidden="true" />
+            <p className="loading-text">{loadingCopy.note}</p>
+          </div>
         </section>
       </div>
     )
@@ -564,8 +629,8 @@ function CertificatePage() {
     return (
       <div className="page">
         <header className="header">
-          <p className="eyebrow">After the Webinar</p>
-          <h1>Your E-Certificate</h1>
+          <p className="eyebrow"></p>
+          <h1>Congratulations!</h1>
           <p className="subtitle">
             {certificateData.fullName} — URN: {certificateData.registrationCode}
           </p>
@@ -598,62 +663,71 @@ function CertificatePage() {
     <div className="page">
       <header className="header">
         <p className="eyebrow"></p>
-        <h1>E-Certificate</h1>
+        <h1>DUNONG</h1>
           <p className="subtitle">
-          Enter your registration code after submitting the feedback Google Form, or use the
-          personalized link from your confirmation email — your certificate loads automatically.
+          Enter your registration code after submitting the feedback Google Form to claim the E-certificate
         </p>
       </header>
 
-      <section className="card">
-        <form className="registration-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-group">
-            <label htmlFor="code">Registration Code *</label>
-            <input
-              id="code"
-              name="code"
-              type="text"
-              value={code}
-              onChange={handleChange}
-              placeholder="DUNONG-20260707-ABC123"
-              autoComplete="off"
-            />
-            {errors.code && <span className="error">{errors.code}</span>}
-          </div>
+      <section className="card card--claim">
+        <span className="card-accent" aria-hidden="true" />
+        <div className="card-inner">
+          <p className="card-label">E-Certificate</p>
+          <h2 className="card-title">Claim Your Certificate</h2>
+          <p className="card-desc">
+            Enter the registration code from your confirmation after submitting feedback.
+          </p>
 
-          {submitError && <p className="form-error">{submitError}</p>}
+          <hr className="card-divider" />
 
-          {feedbackRequired && (
-            <p className="registration-note">
-              {GOOGLE_FORM_URL ? (
-                <>
-                  If you already submitted feedback, wait a moment and click{' '}
-                  <strong>Get E-Certificate</strong> again. Otherwise, complete the form first:{' '}
-                  <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
-                    Open Feedback Form
-                  </a>
-                </>
-              ) : (
-                <>
-                  If you already submitted feedback, wait a moment and try again. Make sure you
-                  entered the same registration code you used in the feedback form.
-                </>
-              )}
-            </p>
-          )}
+          <form className="registration-form" onSubmit={handleSubmit} noValidate>
+            <div className="code-input-wrap">
+              <label htmlFor="code">Registration Code</label>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                className="code-input"
+                value={code}
+                onChange={handleChange}
+                placeholder="DUNONG-20260707-ABC123"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {errors.code && <span className="error">{errors.code}</span>}
+            </div>
 
-          {!feedbackRequired && GOOGLE_FORM_URL && (
-            <p className="registration-note">
-              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
-                Open Feedback Form
-              </a>
-            </p>
-          )}
+            {submitError && <p className="form-error">{submitError}</p>}
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Verifying...' : 'Get E-Certificate'}
-          </button>
-        </form>
+            {feedbackRequired && (
+              <p className="card-footnote">
+                {GOOGLE_FORM_URL ? (
+                  <>
+                    Submit the feedback form first, then return here:{' '}
+                    <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                      Open Feedback Form
+                    </a>
+                  </>
+                ) : (
+                  <>Submit the feedback Google Form using your registration code first.</>
+                )}
+              </p>
+            )}
+
+            {!feedbackRequired && GOOGLE_FORM_URL && (
+              <p className="card-footnote">
+                Haven&apos;t submitted feedback yet?{' '}
+                <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                  Open Feedback Form
+                </a>
+              </p>
+            )}
+
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Verifying...' : 'Get E-Certificate'}
+            </button>
+          </form>
+        </div>
       </section>
     </div>
   )
