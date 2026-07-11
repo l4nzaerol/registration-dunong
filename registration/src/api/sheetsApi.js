@@ -52,6 +52,15 @@ async function callGas(payload) {
   try {
     const proxyResponse = await fetch(API_URL, requestOptions)
     if (proxyResponse.status !== 404) {
+      if (!proxyResponse.ok && GAS_URL && !GAS_URL.includes('PASTE_YOUR')) {
+        // Proxy misconfigured on the host — try direct GAS call if the URL is in the build.
+        try {
+          return await postToUrl(GAS_URL, payload)
+        } catch {
+          // Fall through to the proxy error below.
+        }
+      }
+
       return parseGasResponse(proxyResponse)
     }
   } catch {

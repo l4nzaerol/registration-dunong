@@ -57,10 +57,22 @@ function doGet(e) {
     // Used by Google Form "Go to a webpage" after submit (static URL for all users).
     // onFormSubmit caches the submitter's code for a few minutes before redirect.
     if (!code && e.parameter.latest === '1') {
-      code = CacheService.getScriptCache().get('latestCertCode') || '';
+      code = getLatestSubmittedCode_() || '';
+    }
+
+    if (!code && e.parameter.latest === '1') {
+      return redirectPollingPage_();
     }
 
     return redirectToCertificate_(code);
+  }
+
+  if (action === 'latestCertCode') {
+    const code = getLatestSubmittedCode_() || '';
+    return jsonResponse({
+      success: Boolean(code),
+      code: code,
+    });
   }
 
   return jsonResponse({
@@ -272,7 +284,7 @@ function issueCertificate_(code) {
     return { success: false, message: 'Registration code is required.' };
   }
 
-  const row = findRowByCode_(registrationCode);
+  let row = findRowByCode_(registrationCode);
 
   if (!row) {
     return {
@@ -281,13 +293,21 @@ function issueCertificate_(code) {
     };
   }
 
-  const feedbackSubmitted =
+  let feedbackSubmitted =
     String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+
+  // Fallback when the form trigger is slow or missing: sync from Form Responses tab.
+  if (!feedbackSubmitted && syncFeedbackFromFormResponses_(registrationCode)) {
+    row = findRowByCode_(registrationCode);
+    feedbackSubmitted =
+      row && String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+  }
 
   if (!feedbackSubmitted) {
     return {
       success: false,
       feedbackRequired: true,
+      pendingFeedback: hasFormResponseForCode_(registrationCode),
       message:
         'Feedback has not been submitted yet. Please complete the Google Form first, then return here for your e-certificate.',
     };
@@ -303,8 +323,10 @@ function issueCertificate_(code) {
 
   return {
     success: true,
-    registrationCode: row.values[COL.CODE - 1],
-    fullName: row.values[COL.FULL_NAME - 1],
+    registrationCode: String(row.values[COL.CODE - 1] || '')
+      .trim()
+      .toUpperCase(),
+    fullName: String(row.values[COL.FULL_NAME - 1] || '').trim(),
     certificateUrl: buildCertificateUrl_(row.values[COL.CODE - 1], false),
     message: alreadyIssued
       ? 'Your e-certificate is ready. You can download it again below.'
@@ -364,18 +386,12 @@ function onFormSubmit(e) {
 
     const alreadySubmitted =
       String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
-    const rating = parseRating_(ratingRaw);
-    const sheet = getSheet_();
+    const formRow = [];
+    formRow[FORM_COL.RATING] = ratingRaw;
+    formRow[FORM_COL.COMMENTS] = comments;
 
     if (!alreadySubmitted) {
-      sheet.getRange(row.rowNumber, COL.FEEDBACK_SUBMITTED).setValue('Yes');
-      sheet.getRange(row.rowNumber, COL.FEEDBACK_DATE).setValue(new Date());
-      if (rating) {
-        sheet.getRange(row.rowNumber, COL.RATING).setValue(rating);
-      }
-      if (comments) {
-        sheet.getRange(row.rowNumber, COL.COMMENTS).setValue(comments);
-      }
+      applyFeedbackToRegistration_(registrationCode, formRow);
     }
 
     const certUrl = buildCertificateUrl_(registrationCode, false);
@@ -383,13 +399,15 @@ function onFormSubmit(e) {
     // Brief cache so the form confirmation redirect can resolve the latest submitter.
     CacheService.getScriptCache().put('latestCertCode', registrationCode, 300);
 
-    sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
-    if (certUrl) {
-      sheet.getRange(row.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
+    const refreshedRow = findRowByCode_(registrationCode);
+    const sheet = getSheet_();
+
+    if (refreshedRow && certUrl) {
+      sheet.getRange(refreshedRow.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
     }
 
-    const fullName = row.values[COL.FULL_NAME - 1];
-    const email = row.values[COL.EMAIL - 1];
+    const fullName = refreshedRow ? refreshedRow.values[COL.FULL_NAME - 1] : row.values[COL.FULL_NAME - 1];
+    const email = refreshedRow ? refreshedRow.values[COL.EMAIL - 1] : row.values[COL.EMAIL - 1];
 
     try {
       sendCertificateEmail_(email, fullName, certUrl, registrationCode);
@@ -472,6 +490,174 @@ function submitFeedback_(data) {
       ? 'Feedback was already submitted. You can download your certificate again.'
       : 'Thank you for your feedback. Your e-certificate is ready.',
   };
+}
+
+function getFormResponsesSheet_() {
+  const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheets = spreadsheet.getSheets();
+
+  for (let i = 0; i < sheets.length; i++) {
+    const name = sheets[i].getName();
+    if (name.indexOf('Form Responses') === 0) {
+      return sheets[i];
+    }
+  }
+
+  return null;
+}
+
+function getLatestSubmittedCode_() {
+  const cached = CacheService.getScriptCache().get('latestCertCode');
+  if (cached) {
+    return cached;
+  }
+
+  const formSheet = getFormResponsesSheet_();
+  if (!formSheet || formSheet.getLastRow() < 2) {
+    return '';
+  }
+
+  const lastRow = formSheet.getLastRow();
+  const codeCol = FORM_COL.REGISTRATION_CODE + 1;
+  const code = String(formSheet.getRange(lastRow, codeCol).getValue() || '')
+    .trim()
+    .toUpperCase();
+
+  return code || '';
+}
+
+function hasFormResponseForCode_(registrationCode) {
+  return Boolean(findFormResponseRow_(registrationCode));
+}
+
+function findFormResponseRow_(registrationCode) {
+  const formSheet = getFormResponsesSheet_();
+  if (!formSheet) {
+    return null;
+  }
+
+  const lastRow = formSheet.getLastRow();
+  if (lastRow < 2) {
+    return null;
+  }
+
+  const numCols = Math.max(formSheet.getLastColumn(), FORM_COL.COMMENTS + 1);
+  const values = formSheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+
+  for (let i = values.length - 1; i >= 0; i--) {
+    const row = values[i];
+    const code = String(row[FORM_COL.REGISTRATION_CODE] || '')
+      .trim()
+      .toUpperCase();
+
+    if (code === registrationCode) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+function applyFeedbackToRegistration_(registrationCode, formRow) {
+  const row = findRowByCode_(registrationCode);
+
+  if (!row) {
+    return false;
+  }
+
+  const alreadySubmitted =
+    String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
+
+  if (alreadySubmitted) {
+    return true;
+  }
+
+  const rating = parseRating_(formRow[FORM_COL.RATING]);
+  const comments = String(formRow[FORM_COL.COMMENTS] || '').trim();
+  const sheet = getSheet_();
+
+  sheet.getRange(row.rowNumber, COL.FEEDBACK_SUBMITTED).setValue('Yes');
+  sheet.getRange(row.rowNumber, COL.FEEDBACK_DATE).setValue(new Date());
+
+  if (rating) {
+    sheet.getRange(row.rowNumber, COL.RATING).setValue(rating);
+  }
+
+  if (comments) {
+    sheet.getRange(row.rowNumber, COL.COMMENTS).setValue(comments);
+  }
+
+  const certUrl = buildCertificateUrl_(registrationCode, false);
+  sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
+
+  if (certUrl) {
+    sheet.getRange(row.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
+  }
+
+  CacheService.getScriptCache().put('latestCertCode', registrationCode, 300);
+
+  return true;
+}
+
+function syncFeedbackFromFormResponses_(registrationCode) {
+  const formRow = findFormResponseRow_(registrationCode);
+
+  if (!formRow) {
+    return false;
+  }
+
+  return applyFeedbackToRegistration_(registrationCode, formRow);
+}
+
+function redirectPollingPage_() {
+  const certBase = CERTIFICATE_PAGE_URL.replace(/\/$/, '');
+  const scriptUrl = ScriptApp.getService().getUrl();
+
+  if (!certBase || certBase.indexOf('PASTE_YOUR') !== -1) {
+    return HtmlService.createHtmlOutput(
+      '<p>Certificate page URL is not configured in Apps Script.</p>'
+    );
+  }
+
+  const safeScriptUrl = scriptUrl.replace(/"/g, '&quot;');
+  const safeCertBase = certBase.replace(/"/g, '&quot;');
+
+  return HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head>' +
+      '<meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Preparing your e-certificate</title>' +
+      '<style>body{font-family:Arial,sans-serif;line-height:1.5;color:#222;max-width:32rem;margin:3rem auto;padding:0 1rem;text-align:center}' +
+      'p{color:#444}.spinner{width:2.5rem;height:2.5rem;border:3px solid #e5e7eb;border-top-color:#1a5f2a;border-radius:50%;margin:1.5rem auto;animation:spin 1s linear infinite}' +
+      '@keyframes spin{to{transform:rotate(360deg)}}</style>' +
+      '</head><body>' +
+      '<div class="spinner" aria-hidden="true"></div>' +
+      '<h1>Preparing your e-certificate</h1>' +
+      '<p>Your feedback was received. Please wait while we finalize your certificate link.</p>' +
+      '<p id="status">This usually takes a few seconds.</p>' +
+      '<script>' +
+      '(function(){' +
+      'var attempts=0,maxAttempts=15,scriptUrl="' +
+      safeScriptUrl +
+      '",certBase="' +
+      safeCertBase +
+      '";' +
+      'function poll(){' +
+      'attempts++;' +
+      'fetch(scriptUrl+"?action=latestCertCode")' +
+      '.then(function(response){return response.json();})' +
+      '.then(function(data){' +
+      'if(data&&data.success&&data.code){window.location.replace(certBase+"/?code="+encodeURIComponent(data.code));return;}' +
+      'if(attempts<maxAttempts){setTimeout(poll,2000);return;}' +
+      'document.getElementById("status").textContent="Still processing. Check your email for a personalized certificate link, or open the certificate page and enter your registration code in a minute.";' +
+      '})' +
+      '.catch(function(){if(attempts<maxAttempts){setTimeout(poll,2000);}});' +
+      '}' +
+      'setTimeout(poll,1500);' +
+      '})();' +
+      '</script>' +
+      '</body></html>'
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function findRowByCode_(registrationCode) {

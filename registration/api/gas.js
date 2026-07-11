@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       message:
-        'Google Apps Script URL is not configured. Set VITE_GAS_WEB_APP_URL in your environment.',
+        'Google Apps Script URL is not configured. In Vercel, go to Project Settings → Environment Variables, add VITE_GAS_WEB_APP_URL with your Apps Script /exec URL, then redeploy.',
     })
   }
 

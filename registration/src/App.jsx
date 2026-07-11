@@ -383,13 +383,15 @@ function CertificatePage() {
   const [submitError, setSubmitError] = useState('')
   const [downloadError, setDownloadError] = useState('')
   const [feedbackRequired, setFeedbackRequired] = useState(false)
+  const [processingFeedback, setProcessingFeedback] = useState(false)
   const [autoDownloadPending, setAutoDownloadPending] = useState(false)
   const autoClaimStarted = useRef(false)
 
   async function fetchCertificate(registrationCode, options = {}) {
-    const { autoDownload = false } = options
+    const { autoDownload = false, retryOnFeedback = true } = options
     setSubmitError('')
     setFeedbackRequired(false)
+    setProcessingFeedback(false)
 
     const trimmedCode = registrationCode.trim()
     if (!trimmedCode) {
@@ -402,7 +404,22 @@ function CertificatePage() {
     setStep('loading')
 
     try {
-      const result = await issueCertificate(trimmedCode)
+      let result = await issueCertificate(trimmedCode)
+
+      if (!result.success && result.feedbackRequired && retryOnFeedback) {
+        setProcessingFeedback(true)
+
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2500))
+          result = await issueCertificate(trimmedCode)
+
+          if (result.success || !result.feedbackRequired) {
+            break
+          }
+        }
+
+        setProcessingFeedback(false)
+      }
 
       if (!result.success) {
         setFeedbackRequired(Boolean(result.feedbackRequired))
@@ -425,6 +442,7 @@ function CertificatePage() {
       }
       window.history.replaceState({}, '', url)
     } catch (error) {
+      setProcessingFeedback(false)
       setSubmitError(error.message || 'Unable to connect to Google Sheets.')
       setStep('form')
       setCode(trimmedCode)
@@ -511,6 +529,7 @@ function CertificatePage() {
     setSubmitError('')
     setDownloadError('')
     setFeedbackRequired(false)
+    setProcessingFeedback(false)
     setAutoDownloadPending(false)
 
     const url = new URL(window.location.href)
@@ -526,9 +545,11 @@ function CertificatePage() {
           <p className="eyebrow">After the Webinar</p>
           <h1>Your E-Certificate</h1>
           <p className="subtitle">
-            {submitting
-              ? 'Generating your e-certificate with your name and registration code...'
-              : 'Preparing your certificate...'}
+            {processingFeedback
+              ? 'Your feedback was received. Finalizing your e-certificate...'
+              : submitting
+                ? 'Generating your e-certificate with your name and registration code...'
+                : 'Preparing your certificate...'}
           </p>
         </header>
 
@@ -602,7 +623,26 @@ function CertificatePage() {
 
           {submitError && <p className="form-error">{submitError}</p>}
 
-          {feedbackRequired && GOOGLE_FORM_URL && (
+          {feedbackRequired && (
+            <p className="registration-note">
+              {GOOGLE_FORM_URL ? (
+                <>
+                  If you already submitted feedback, wait a moment and click{' '}
+                  <strong>Get E-Certificate</strong> again. Otherwise, complete the form first:{' '}
+                  <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                    Open Feedback Form
+                  </a>
+                </>
+              ) : (
+                <>
+                  If you already submitted feedback, wait a moment and try again. Make sure you
+                  entered the same registration code you used in the feedback form.
+                </>
+              )}
+            </p>
+          )}
+
+          {!feedbackRequired && GOOGLE_FORM_URL && (
             <p className="registration-note">
               <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
                 Open Feedback Form

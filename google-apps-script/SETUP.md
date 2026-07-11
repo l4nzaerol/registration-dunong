@@ -294,7 +294,9 @@ Extra questions after #4 do not require code changes.
 | Registration not saving | Web App access = **Anyone**; check Spreadsheet ID; redeploy new Apps Script version |
 | Form submit not updating Registrations | Confirm **onFormSubmit** trigger exists; questions 1–4 are in correct order |
 | "Registration code not found" on form | Code must match **Registrations** sheet exactly (case-insensitive) |
-| "Feedback has not been submitted yet" on cert page | User must submit the Google Form first |
+| "Feedback has not been submitted yet" on cert page | Submit the Google Form first with your registration code. If you already did, wait 10–30 seconds and retry — the app now auto-retries. Also confirm `onFormSubmit` trigger exists and form is linked to the same spreadsheet |
+| Testing on localhost | Works on any device — feedback is stored in Google Sheets, not localStorage. You still need `VITE_GAS_WEB_APP_URL` pointing to your deployed Apps Script |
+| Certificate page must be deployed | Yes — set `CERTIFICATE_PAGE_URL` in Apps Script to your **certificate** Vercel URL (not localhost). Form redirect and certificate emails use that URL |
 | Wrong name on certificate | Name comes from **registration** — edit **Full Name** in Registrations sheet if needed |
 | Name mismatch in Apps Script logs | Participant typed a different name in the form; cert still uses registered name |
 | No certificate email | Check spam; confirm `CERTIFICATE_PAGE_URL` is set; trigger needs Gmail permission |

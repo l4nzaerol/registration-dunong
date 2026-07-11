@@ -4,7 +4,21 @@ import './Certificate.css'
 
 const TEMPLATE_SRC = '/certificate-template.png'
 
+function formatCertificateName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+}
+
+function formatRegistrationCode(code) {
+  return String(code || '').trim().toUpperCase()
+}
+
 export default function Certificate({ fullName, registrationCode }) {
+  const displayName = formatCertificateName(fullName)
+  const displayCode = formatRegistrationCode(registrationCode)
+
   return (
     <div className="certificate-wrapper">
       <div className="certificate" id="e-certificate">
@@ -14,10 +28,10 @@ export default function Certificate({ fullName, registrationCode }) {
           className="certificate-template"
           crossOrigin="anonymous"
         />
-        <p className="certificate-name">{fullName}</p>
+        <p className="certificate-name">{displayName}</p>
         <p className="certificate-urn">
           <span className="certificate-urn-label">URN: </span>
-          {registrationCode}
+          {displayCode}
         </p>
       </div>
     </div>
