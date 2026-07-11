@@ -29,11 +29,13 @@ async function callGas(payload) {
 }
 
 export async function registerParticipant(form) {
+  const address = String(form.address || '').trim()
+
   return callGas({
     action: 'register',
     fullName: form.fullName,
     email: form.email,
-    organization: form.organization,
+    address,
     phone: form.phone,
   })
 }

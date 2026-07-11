@@ -8,11 +8,15 @@ import Certificate, { downloadCertificate } from './components/Certificate'
 import './App.css'
 
 const GOOGLE_FORM_URL = import.meta.env.VITE_GOOGLE_FORM_URL || ''
+const APP_MODE = import.meta.env.VITE_APP_MODE || 'both'
+const IS_REGISTER_ONLY = APP_MODE === 'register'
+const IS_CERTIFICATE_ONLY = APP_MODE === 'certificate'
+const SHOW_BOTH_TABS = APP_MODE === 'both'
 
 const INITIAL_REGISTRATION = {
   fullName: '',
   email: '',
-  organization: '',
+  address: '',
   phone: '',
 }
 
@@ -24,8 +28,62 @@ function shouldAutoDownload() {
   return new URLSearchParams(window.location.search).get('download') === '1'
 }
 
+function CopyCodeButton({ code }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = code
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="btn btn-copy"
+      onClick={handleCopy}
+      aria-label="Copy registration code"
+    >
+      {copied ? 'Copied!' : 'Copy Code'}
+    </button>
+  )
+}
+
+function getInitialPage() {
+  if (IS_REGISTER_ONLY) {
+    return 'register'
+  }
+
+  if (IS_CERTIFICATE_ONLY) {
+    return 'certificate'
+  }
+
+  if (getCodeFromUrl()) {
+    return 'certificate'
+  }
+
+  if (new URLSearchParams(window.location.search).get('tab') === 'certificate') {
+    return 'certificate'
+  }
+
+  return 'register'
+}
+
 function App() {
-  const [page, setPage] = useState(() => (getCodeFromUrl() ? 'certificate' : 'register'))
+  const [page, setPage] = useState(getInitialPage)
 
   return (
     <div className="app-shell">
@@ -36,24 +94,34 @@ function App() {
         </div>
       )}
 
-      <nav className="nav-tabs" aria-label="Webinar pages">
-        <button
-          type="button"
-          className={page === 'register' ? 'nav-tab active' : 'nav-tab'}
-          onClick={() => setPage('register')}
-        >
-          Registration
-        </button>
-        <button
-          type="button"
-          className={page === 'certificate' ? 'nav-tab active' : 'nav-tab'}
-          onClick={() => setPage('certificate')}
-        >
-          E-Certificate
-        </button>
-      </nav>
+      {SHOW_BOTH_TABS && (
+        <nav className="nav-tabs" aria-label="Webinar pages">
+          <button
+            type="button"
+            className={page === 'register' ? 'nav-tab active' : 'nav-tab'}
+            onClick={() => setPage('register')}
+          >
+            Registration
+          </button>
+          <button
+            type="button"
+            className={page === 'certificate' ? 'nav-tab active' : 'nav-tab'}
+            onClick={() => setPage('certificate')}
+          >
+            E-Certificate
+          </button>
+        </nav>
+      )}
 
-      {page === 'register' ? <RegistrationPage /> : <CertificatePage />}
+      {page === 'register' ? (
+        IS_REGISTER_ONLY && getCodeFromUrl() ? (
+          <CertificateUnavailablePage />
+        ) : (
+          <RegistrationPage />
+        )
+      ) : (
+        <CertificatePage />
+      )}
     </div>
   )
 }
@@ -86,8 +154,8 @@ function RegistrationPage() {
       nextErrors.email = 'Enter a valid email address.'
     }
 
-    if (!form.organization.trim()) {
-      nextErrors.organization = 'Organization is required.'
+    if (!form.address.trim()) {
+      nextErrors.address = 'Address is required.'
     }
 
     if (form.phone.trim() && !/^[\d\s+\-()]+$/.test(form.phone)) {
@@ -117,7 +185,10 @@ function RegistrationPage() {
         return
       }
 
-      setRegistration(result)
+      setRegistration({
+        ...result,
+        address: result.address || form.address,
+      })
     } catch (error) {
       setSubmitError(error.message || 'Unable to connect to Google Sheets.')
     } finally {
@@ -147,12 +218,16 @@ function RegistrationPage() {
 
           <div className="registration-number-box">
             <span className="registration-label">Your Registration Code</span>
-            <span className="registration-number">{registration.registrationCode}</span>
+            <div className="registration-code-row">
+              <span className="registration-number">{registration.registrationCode}</span>
+              <CopyCodeButton code={registration.registrationCode} />
+            </div>
           </div>
 
           <p className="registration-note">
             Save this code. After the webinar, submit the feedback Google Form using this code.
-            A personalized e-certificate link will be sent to your registered email automatically.
+            A personalized e-certificate claim link will be sent to your registered email and shown
+            in the form confirmation message.
           </p>
 
           {GOOGLE_FORM_URL && (
@@ -172,8 +247,8 @@ function RegistrationPage() {
                 <dd>{registration.email}</dd>
               </div>
               <div>
-                <dt>Organization</dt>
-                <dd>{registration.organization}</dd>
+                <dt>Address</dt>
+                <dd>{registration.address}</dd>
               </div>
               {registration.phone && (
                 <div>
@@ -235,18 +310,18 @@ function RegistrationPage() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="organization">Organization *</label>
+            <label htmlFor="address">Address *</label>
             <input
-              id="organization"
-              name="organization"
+              id="address"
+              name="address"
               type="text"
-              value={form.organization}
+              value={form.address}
               onChange={handleChange}
-              placeholder="Company or institution"
-              autoComplete="organization"
+              placeholder="Street, city, province"
+              autoComplete="street-address"
             />
-            {errors.organization && (
-              <span className="error">{errors.organization}</span>
+            {errors.address && (
+              <span className="error">{errors.address}</span>
             )}
           </div>
 
@@ -275,9 +350,32 @@ function RegistrationPage() {
   )
 }
 
+function CertificateUnavailablePage() {
+  return (
+    <div className="page">
+      <header className="header">
+        <p className="eyebrow">After the Webinar</p>
+        <h1>E-Certificate</h1>
+        <p className="subtitle">
+          Certificate claiming opens on a separate site after the webinar. Check the link in your
+          feedback form confirmation email, or contact the organizers if you need help.
+        </p>
+      </header>
+
+      <section className="card">
+        <p className="registration-note">
+          Your registration code <strong>{getCodeFromUrl()}</strong> is saved. Use the certificate
+          site once feedback has been submitted.
+        </p>
+      </section>
+    </div>
+  )
+}
+
 function CertificatePage() {
-  const [step, setStep] = useState(() => (getCodeFromUrl() ? 'loading' : 'form'))
-  const [code, setCode] = useState(() => getCodeFromUrl())
+  const codeFromUrl = getCodeFromUrl()
+  const [step, setStep] = useState(() => (codeFromUrl ? 'claim' : 'form'))
+  const [code, setCode] = useState(() => codeFromUrl)
   const [errors, setErrors] = useState({})
   const [certificateData, setCertificateData] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -285,7 +383,7 @@ function CertificatePage() {
   const [submitError, setSubmitError] = useState('')
   const [downloadError, setDownloadError] = useState('')
   const [feedbackRequired, setFeedbackRequired] = useState(false)
-  const [autoDownloadPending, setAutoDownloadPending] = useState(() => shouldAutoDownload())
+  const [autoDownloadPending, setAutoDownloadPending] = useState(false)
 
   async function fetchCertificate(registrationCode, options = {}) {
     const { autoDownload = false } = options
@@ -308,7 +406,7 @@ function CertificatePage() {
       if (!result.success) {
         setFeedbackRequired(Boolean(result.feedbackRequired))
         setSubmitError(result.message || 'Unable to issue certificate.')
-        setStep('form')
+        setStep(codeFromUrl ? 'claim' : 'form')
         return
       }
 
@@ -320,23 +418,17 @@ function CertificatePage() {
       url.searchParams.set('code', result.registrationCode)
       if (autoDownload) {
         url.searchParams.set('download', '1')
+      } else {
+        url.searchParams.delete('download')
       }
       window.history.replaceState({}, '', url)
     } catch (error) {
       setSubmitError(error.message || 'Unable to connect to Google Sheets.')
-      setStep('form')
+      setStep(codeFromUrl ? 'claim' : 'form')
     } finally {
       setSubmitting(false)
     }
   }
-
-  useEffect(() => {
-    const codeFromUrl = getCodeFromUrl()
-    if (codeFromUrl) {
-      fetchCertificate(codeFromUrl, { autoDownload: shouldAutoDownload() })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   useEffect(() => {
     if (!autoDownloadPending || step !== 'certificate' || !certificateData) {
@@ -399,6 +491,11 @@ function CertificatePage() {
     await fetchCertificate(code)
   }
 
+  async function handleClaim() {
+    setErrors({})
+    await fetchCertificate(code, { autoDownload: shouldAutoDownload() })
+  }
+
   function handleReset() {
     setStep('form')
     setCode('')
@@ -430,6 +527,48 @@ function CertificatePage() {
 
         <section className="card">
           <p className="registration-note">Please wait a moment.</p>
+        </section>
+      </div>
+    )
+  }
+
+  if (step === 'claim') {
+    return (
+      <div className="page">
+        <header className="header">
+          <p className="eyebrow">After the Webinar</p>
+          <h1>Claim Your E-Certificate</h1>
+          <p className="subtitle">
+            Your feedback has been received. Click the button below to claim your personalized
+            e-certificate with your full name and registration code — no need to enter your code
+            again.
+          </p>
+        </header>
+
+        <section className="card claim-card">
+          <div className="registration-number-box">
+            <span className="registration-label">Your Registration Code</span>
+            <span className="registration-number">{code}</span>
+          </div>
+
+          {submitError && <p className="form-error">{submitError}</p>}
+
+          {feedbackRequired && GOOGLE_FORM_URL && (
+            <p className="registration-note">
+              <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
+                Open Feedback Form
+              </a>
+            </p>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleClaim}
+            disabled={submitting}
+          >
+            {submitting ? 'Claiming Certificate...' : 'Claim Certificate'}
+          </button>
         </section>
       </div>
     )
@@ -474,7 +613,7 @@ function CertificatePage() {
         <h1>E-Certificate</h1>
           <p className="subtitle">
           Enter your registration code after submitting the feedback Google Form. A personalized
-          certificate link is also sent to your registered email automatically.
+          claim link is also sent to your registered email after you submit feedback.
         </p>
       </header>
 

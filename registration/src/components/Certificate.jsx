@@ -2,38 +2,44 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import './Certificate.css'
 
-export default function Certificate({ fullName, registrationCode }) {
-  const issuedDate = new Date().toLocaleDateString('en-PH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+const TEMPLATE_SRC = '/certificate-template.png'
 
+export default function Certificate({ fullName, registrationCode }) {
   return (
     <div className="certificate-wrapper">
       <div className="certificate" id="e-certificate">
-        <div className="certificate-border">
-          <p className="certificate-eyebrow">Certificate of Participation</p>
-          <h2 className="certificate-title">DUNONG WEBINAR</h2>
-          <p className="certificate-text">This is to certify that</p>
-          <p className="certificate-name">{fullName}</p>
-          <p className="certificate-text">
-            has successfully participated in the Dunong Webinar.
-          </p>
-          <div className="certificate-meta">
-            <div>
-              <span className="certificate-meta-label">Registration Code</span>
-              <span className="certificate-meta-value">{registrationCode}</span>
-            </div>
-            <div>
-              <span className="certificate-meta-label">Date Issued</span>
-              <span className="certificate-meta-value">{issuedDate}</span>
-            </div>
-          </div>
-        </div>
+        <img
+          src={TEMPLATE_SRC}
+          alt="Certificate of Participation"
+          className="certificate-template"
+          crossOrigin="anonymous"
+        />
+        <p className="certificate-name">{fullName}</p>
+        <p className="certificate-urn">
+          <span className="certificate-urn-label">URN: </span>
+          {registrationCode}
+        </p>
       </div>
     </div>
   )
+}
+
+async function waitForCertificateImage(element) {
+  const img = element.querySelector('.certificate-template')
+  if (!img) {
+    return
+  }
+
+  if (img.complete && img.naturalWidth > 0) {
+    return
+  }
+
+  await new Promise((resolve, reject) => {
+    img.addEventListener('load', resolve, { once: true })
+    img.addEventListener('error', () => reject(new Error('Certificate template failed to load.')), {
+      once: true,
+    })
+  })
 }
 
 export async function downloadCertificate() {
@@ -41,6 +47,8 @@ export async function downloadCertificate() {
   if (!element) {
     throw new Error('Certificate not found.')
   }
+
+  await waitForCertificateImage(element)
 
   const canvas = await html2canvas(element, {
     scale: 2,

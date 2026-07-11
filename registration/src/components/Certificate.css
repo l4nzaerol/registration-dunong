@@ -5,80 +5,47 @@
 }
 
 .certificate {
+  position: relative;
   width: 100%;
-  max-width: 760px;
-  background: #fff;
-  border: 3px solid var(--accent);
-  border-radius: 12px;
-  padding: 12px;
-  box-sizing: border-box;
+  max-width: 1056px;
+  line-height: 1.2;
 }
 
-.certificate-border {
-  border: 2px solid var(--accent-border);
-  border-radius: 8px;
-  padding: 40px 32px;
-  text-align: center;
-}
-
-.certificate-eyebrow {
-  font-size: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 12px;
-}
-
-.certificate-title {
-  font-size: 32px;
-  margin: 0 0 24px;
-  color: var(--accent);
-}
-
-.certificate-text {
-  font-size: 16px;
-  margin: 0 0 12px;
-  color: var(--text-h);
+.certificate-template {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .certificate-name {
-  font-size: 28px;
+  position: absolute;
+  left: 50%;
+  top: 39.5%;
+  transform: translateX(-50%);
+  width: 78%;
+  margin: 0;
+  text-align: center;
+  font-family: 'Times New Roman', Times, Georgia, serif;
+  font-size: clamp(1.25rem, 3.2vw, 2.15rem);
   font-weight: 700;
-  margin: 8px 0;
-  color: var(--text-h);
+  color: #111;
+  letter-spacing: 0.02em;
 }
 
-.certificate-org {
-  font-size: 16px;
-  margin: 0 0 20px;
-  color: var(--text);
+.certificate-urn {
+  position: absolute;
+  right: 5.5%;
+  bottom: 3.8%;
+  margin: 0;
+  font-family: 'Times New Roman', Times, Georgia, serif;
+  font-size: clamp(0.65rem, 1.35vw, 0.95rem);
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap;
 }
 
-.certificate-meta {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  margin-top: 28px;
-  flex-wrap: wrap;
-}
-
-.certificate-meta > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.certificate-meta-label {
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.certificate-meta-value {
-  font-family: var(--mono);
-  font-size: 14px;
-  color: var(--text-h);
+.certificate-urn-label {
+  font-weight: 700;
 }
 
 @media print {
@@ -97,16 +64,6 @@
     top: 0;
     width: 100%;
     max-width: none;
-    border: none;
-    padding: 0;
     margin: 0;
-  }
-
-  .certificate-border {
-    border: 2px solid #c8102e;
-    min-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
   }
 }

@@ -9,8 +9,9 @@ const CERTIFICATE_PAGE_URL = 'PASTE_YOUR_DEPLOYED_APP_URL_HERE';
 // Google Form response columns (0 = timestamp). Adjust if your form field order differs.
 const FORM_COL = {
   REGISTRATION_CODE: 1,
-  RATING: 2,
-  COMMENTS: 3,
+  FULL_NAME: 2,
+  RATING: 3,
+  COMMENTS: 4,
 };
 
 const HEADERS = [
@@ -18,7 +19,7 @@ const HEADERS = [
   'Registration Code',
   'Full Name',
   'Email',
-  'Organization',
+  'Address',
   'Phone',
   'Feedback Submitted',
   'Feedback Date',
@@ -33,7 +34,7 @@ const COL = {
   CODE: 2,
   FULL_NAME: 3,
   EMAIL: 4,
-  ORGANIZATION: 5,
+  ADDRESS: 5,
   PHONE: 6,
   FEEDBACK_SUBMITTED: 7,
   FEEDBACK_DATE: 8,
@@ -100,11 +101,11 @@ function doPost(e) {
 function registerParticipant_(data) {
   const fullName = String(data.fullName || '').trim();
   const email = String(data.email || '').trim().toLowerCase();
-  const organization = String(data.organization || '').trim();
+  const address = String(data.address || data.organization || '').trim();
   const phone = String(data.phone || '').trim();
 
-  if (!fullName || !email || !organization) {
-    return { success: false, message: 'Full name, email, and organization are required.' };
+  if (!fullName || !email || !address) {
+    return { success: false, message: 'Full name, email, and address are required.' };
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -119,7 +120,7 @@ function registerParticipant_(data) {
     registrationCode,
     fullName,
     email,
-    organization,
+    address,
     phone,
     'No',
     '',
@@ -134,7 +135,7 @@ function registerParticipant_(data) {
     registrationCode: registrationCode,
     fullName: fullName,
     email: email,
-    organization: organization,
+    address: address,
     phone: phone,
   };
 }
@@ -162,7 +163,7 @@ function verifyRegistrationCode_(code) {
     registrationCode: row.values[COL.CODE - 1],
     fullName: row.values[COL.FULL_NAME - 1],
     email: row.values[COL.EMAIL - 1],
-    organization: row.values[COL.ORGANIZATION - 1],
+    address: row.values[COL.ADDRESS - 1],
     feedbackSubmitted: String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes',
     certificateIssued: String(row.values[COL.CERTIFICATE_ISSUED - 1]).toLowerCase() === 'yes',
   };
@@ -174,18 +175,18 @@ function buildCertificateUrl_(registrationCode, autoDownload) {
   }
 
   const base = CERTIFICATE_PAGE_URL.replace(/\/$/, '');
-  const url =
-    base +
-    '/?code=' +
-    encodeURIComponent(registrationCode) +
-    (autoDownload ? '&download=1' : '');
+  const url = base + '/?code=' + encodeURIComponent(registrationCode);
+
+  if (autoDownload) {
+    return url + '&download=1';
+  }
 
   return url;
 }
 
 function redirectToCertificate_(code) {
   const registrationCode = String(code || '').trim().toUpperCase();
-  const certUrl = buildCertificateUrl_(registrationCode, true);
+  const certUrl = buildCertificateUrl_(registrationCode, false);
 
   if (!certUrl) {
     return HtmlService.createHtmlOutput(
@@ -231,7 +232,7 @@ function sendCertificateEmail_(email, fullName, certUrl, registrationCode) {
     '</strong>.</p>' +
     '<p><a href="' +
     certUrl +
-    '" style="display:inline-block;padding:12px 20px;background:#1a5f2a;color:#fff;text-decoration:none;border-radius:6px;">View &amp; Download E-Certificate</a></p>' +
+    '" style="display:inline-block;padding:12px 20px;background:#1a5f2a;color:#fff;text-decoration:none;border-radius:6px;">Claim E-Certificate</a></p>' +
     '<p>Or copy this link:<br><a href="' +
     certUrl +
     '">' +
@@ -245,7 +246,7 @@ function sendCertificateEmail_(email, fullName, certUrl, registrationCode) {
     'Your e-certificate is ready with your name and registration code ' +
     registrationCode +
     '.\n\n' +
-    'Open this link to view and download your certificate:\n' +
+    'Open this link to claim and download your certificate:\n' +
     certUrl;
 
   MailApp.sendEmail({
@@ -296,7 +297,7 @@ function issueCertificate_(code) {
     success: true,
     registrationCode: row.values[COL.CODE - 1],
     fullName: row.values[COL.FULL_NAME - 1],
-    certificateUrl: buildCertificateUrl_(row.values[COL.CODE - 1], true),
+    certificateUrl: buildCertificateUrl_(row.values[COL.CODE - 1], false),
     message: alreadyIssued
       ? 'Your e-certificate is ready. You can download it again below.'
       : 'Your e-certificate is ready. You can download it below.',
@@ -308,9 +309,11 @@ function issueCertificate_(code) {
  * In Apps Script: Triggers → Add trigger → onFormSubmit → From spreadsheet → On form submit.
  *
  * Expected form fields (in order):
- * 1. Registration Code (short answer)
- * 2. Webinar Rating (1–5)
- * 3. Feedback Comments (paragraph)
+ * 1. Registration Code (short answer, required)
+ * 2. Full Name (short answer, required)
+ * 3. Webinar Rating (1–5)
+ * 4. Feedback Comments (paragraph)
+ * Additional questions may be added after #4; they are stored in Form Responses only.
  */
 function onFormSubmit(e) {
   const lock = LockService.getScriptLock();
@@ -322,6 +325,7 @@ function onFormSubmit(e) {
     const registrationCode = String(responses[FORM_COL.REGISTRATION_CODE] || '')
       .trim()
       .toUpperCase();
+    const formFullName = String(responses[FORM_COL.FULL_NAME] || '').trim();
     const ratingRaw = responses[FORM_COL.RATING];
     const comments = String(responses[FORM_COL.COMMENTS] || '').trim();
 
@@ -335,6 +339,19 @@ function onFormSubmit(e) {
     if (!row) {
       Logger.log('Form submit: registration code not found — ' + registrationCode);
       return;
+    }
+
+    const registeredName = String(row.values[COL.FULL_NAME - 1]).trim();
+    if (formFullName && normalizeName_(formFullName) !== normalizeName_(registeredName)) {
+      Logger.log(
+        'Name mismatch for ' +
+          registrationCode +
+          ': form="' +
+          formFullName +
+          '" registered="' +
+          registeredName +
+          '"'
+      );
     }
 
     const alreadySubmitted =
@@ -353,7 +370,7 @@ function onFormSubmit(e) {
       }
     }
 
-    const certUrl = buildCertificateUrl_(registrationCode, true);
+    const certUrl = buildCertificateUrl_(registrationCode, false);
     sheet.getRange(row.rowNumber, COL.CERTIFICATE_ISSUED).setValue('Yes');
     if (certUrl) {
       sheet.getRange(row.rowNumber, COL.CERTIFICATE_LINK).setValue(certUrl);
@@ -372,6 +389,13 @@ function onFormSubmit(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function normalizeName_(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 }
 
 function parseRating_(value) {
@@ -431,7 +455,7 @@ function submitFeedback_(data) {
     registrationCode: row.values[COL.CODE - 1],
     fullName: row.values[COL.FULL_NAME - 1],
     email: row.values[COL.EMAIL - 1],
-    organization: row.values[COL.ORGANIZATION - 1],
+    address: row.values[COL.ADDRESS - 1],
     message: alreadySubmitted
       ? 'Feedback was already submitted. You can download your certificate again.'
       : 'Thank you for your feedback. Your e-certificate is ready.',
@@ -493,6 +517,11 @@ function getSheet_() {
   } else if (sheet.getLastColumn() < HEADERS.length) {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
+  }
+
+  const addressHeader = String(sheet.getRange(1, COL.ADDRESS).getValue()).trim();
+  if (addressHeader === 'Organization') {
+    sheet.getRange(1, COL.ADDRESS).setValue('Address');
   }
 
   return sheet;
