@@ -2,13 +2,15 @@
   width: 100%;
   display: flex;
   justify-content: center;
+  padding: 0 8px;
 }
 
 .certificate {
   position: relative;
   width: 100%;
   max-width: 1056px;
-  line-height: 1.2;
+  line-height: 1;
+  container-type: inline-size;
 }
 
 .certificate-template {
@@ -17,41 +19,71 @@
   height: auto;
 }
 
+/* Centered on the underline between "is proudly presented to" and body text */
 .certificate-name {
   position: absolute;
   left: 50%;
-  top: 40.9%;
-  transform: translate(-50%, -50%);
-  width: 70%;
+  top: 39.15%;
+  transform: translate(-50%, -100%);
+  width: 46.7%;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0.12em;
+  border: 0;
   text-align: center;
   font-family: 'Times New Roman', Times, Georgia, serif;
-  font-size: clamp(1.5rem, 3.8vw, 2.4rem);
+  font-size: clamp(0.98rem, 3.35cqi, 1.85rem);
   font-weight: 700;
-  color: #111111;
-  letter-spacing: 0.05em;
-  line-height: 1.1;
+  font-style: normal;
+  color: #0a0a0a;
+  letter-spacing: 0.06em;
+  line-height: 1.05;
   background: transparent;
+  box-shadow: none;
+  text-transform: uppercase;
+  word-break: break-word;
+  hyphens: auto;
+  pointer-events: none;
+  -webkit-text-fill-color: #0a0a0a;
 }
 
+.certificate-name--long {
+  font-size: clamp(0.86rem, 2.9cqi, 1.55rem);
+  letter-spacing: 0.045em;
+}
+
+.certificate-name--xlong {
+  font-size: clamp(0.76rem, 2.45cqi, 1.32rem);
+  letter-spacing: 0.035em;
+}
+
+.certificate-name--xxlong {
+  font-size: clamp(0.66rem, 2.05cqi, 1.12rem);
+  letter-spacing: 0.025em;
+  line-height: 1.1;
+}
+
+/* Bottom-right white pocket — right-aligned, clear of red border */
 .certificate-urn {
   position: absolute;
-  right: 1.2%;
-  bottom: 2.6%;
+  right: 5%;
+  bottom: 6%;
   margin: 0;
   padding: 0;
+  border: 0;
+  max-width: 32%;
+  text-align: right;
   font-family: 'Times New Roman', Times, Georgia, serif;
-  font-size: clamp(0.74rem, 1.55vw, 1.05rem);
-  font-weight: 700;
-  color: #111111;
+  font-size: clamp(0.72rem, 1.28cqi, 1rem);
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  color: #121212;
   background: transparent;
-}
-
-.certificate-urn-label {
-  font-weight: 700;
+  box-shadow: none;
+  pointer-events: none;
+  -webkit-text-fill-color: #121212;
 }
 
 @media print {

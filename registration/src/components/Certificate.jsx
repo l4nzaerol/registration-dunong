@@ -15,9 +15,24 @@ function formatRegistrationCode(code) {
   return String(code || '').trim().toUpperCase()
 }
 
+function getNameSizeClass(name) {
+  const length = name.length
+  if (length > 48) {
+    return 'certificate-name--xxlong'
+  }
+  if (length > 36) {
+    return 'certificate-name--xlong'
+  }
+  if (length > 24) {
+    return 'certificate-name--long'
+  }
+  return ''
+}
+
 export default function Certificate({ fullName, registrationCode }) {
   const displayName = formatCertificateName(fullName)
   const displayCode = formatRegistrationCode(registrationCode)
+  const nameSizeClass = getNameSizeClass(displayName)
 
   return (
     <div className="certificate-wrapper">
@@ -28,11 +43,8 @@ export default function Certificate({ fullName, registrationCode }) {
           className="certificate-template"
           crossOrigin="anonymous"
         />
-        <p className="certificate-name">{displayName}</p>
-        <p className="certificate-urn">
-          <span className="certificate-urn-label">URN: </span>
-          {displayCode}
-        </p>
+        <p className={`certificate-name ${nameSizeClass}`.trim()}>{displayName}</p>
+        <p className="certificate-urn">URN: {displayCode}</p>
       </div>
     </div>
   )
