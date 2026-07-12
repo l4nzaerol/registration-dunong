@@ -484,7 +484,7 @@ function CertificatePage() {
       }
 
       setLoadingStatus('preparing')
-      const result = await issueCertificate(trimmedCode)
+      const result = status.certificatePreview || (await issueCertificate(trimmedCode))
 
       if (!result.success) {
         setFeedbackRequired(Boolean(result.feedbackRequired))

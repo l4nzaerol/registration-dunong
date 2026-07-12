@@ -100,11 +100,85 @@ export async function verifyRegistrationCode(code) {
   })
 }
 
+async function checkCertificateStatusLegacy(code) {
+  const trimmedCode = String(code || '').trim()
+
+  const verify = await callGas({
+    action: 'verify',
+    code: trimmedCode,
+  })
+
+  if (!verify.success) {
+    return verify
+  }
+
+  if (!verify.valid) {
+    return {
+      success: true,
+      valid: false,
+      message: verify.message || 'Registration code not found. Please check and try again.',
+    }
+  }
+
+  const participant = {
+    registrationCode: verify.registrationCode,
+    fullName: verify.fullName,
+  }
+
+  if (verify.feedbackSubmitted) {
+    return {
+      success: true,
+      valid: true,
+      ready: true,
+      feedbackSubmitted: true,
+      pendingFeedback: false,
+      ...participant,
+    }
+  }
+
+  const issued = await callGas({
+    action: 'issueCertificate',
+    code: trimmedCode,
+  })
+
+  if (issued.success) {
+    return {
+      success: true,
+      valid: true,
+      ready: true,
+      feedbackSubmitted: true,
+      pendingFeedback: false,
+      registrationCode: issued.registrationCode || participant.registrationCode,
+      fullName: issued.fullName || participant.fullName,
+      certificatePreview: issued,
+    }
+  }
+
+  return {
+    success: true,
+    valid: true,
+    ready: false,
+    feedbackSubmitted: false,
+    feedbackRequired: Boolean(issued.feedbackRequired),
+    pendingFeedback: Boolean(issued.pendingFeedback),
+    message:
+      issued.message ||
+      'You need to submit the feedback Google Form before claiming your e-certificate.',
+    ...participant,
+  }
+}
+
 export async function checkCertificateStatus(code) {
-  return callGas({
+  const result = await callGas({
     action: 'checkCertificateStatus',
     code,
   })
+
+  if (result.message === 'Unknown action.') {
+    return checkCertificateStatusLegacy(code)
+  }
+
+  return result
 }
 
 export async function issueCertificate(code) {
