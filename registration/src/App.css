@@ -3,18 +3,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 20px 56px;
-  gap: 28px;
+  padding: clamp(20px, 4vw, 40px) clamp(12px, 3vw, 20px) clamp(32px, 5vw, 56px);
+  gap: clamp(18px, 3vw, 28px);
   background:
     linear-gradient(180deg, rgba(10, 2, 4, 0.35) 0%, rgba(10, 2, 4, 0.55) 100%),
-    url('/background.png') center / cover no-repeat fixed;
+    url('/background.png') center / cover no-repeat scroll;
   min-height: calc(100svh - 57px);
+  width: 100%;
 }
 
 .header {
   width: 100%;
-  max-width: 560px;
+  max-width: min(560px, 100%);
   text-align: center;
+  padding: 0 4px;
 }
 
 .page .header .eyebrow {
@@ -30,10 +32,12 @@
 .page .header .subtitle {
   color: rgba(255, 240, 240, 0.88);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
-  font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+  font-size: clamp(0.88rem, 2.4vw, 1.1rem);
   line-height: 1.55;
-  max-width: 480px;
+  max-width: min(480px, 100%);
   margin: 0 auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .app-shell {
@@ -55,25 +59,30 @@
   display: flex;
   justify-content: center;
   gap: 4px;
-  padding: 14px 16px 0;
+  padding: 12px clamp(8px, 2vw, 16px) 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(20, 4, 6, 0.72);
   backdrop-filter: blur(16px);
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-tab {
   font: inherit;
-  font-size: 14px;
+  font-size: clamp(12px, 2.8vw, 14px);
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 10px 20px;
+  padding: 10px clamp(14px, 3vw, 20px);
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
   color: rgba(255, 220, 220, 0.55);
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   &.active {
     color: #fff;
@@ -103,7 +112,7 @@
 .card {
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: min(520px, 100%);
   overflow: hidden;
   background: var(--bg-glass);
   border: 1px solid var(--border);
@@ -116,7 +125,7 @@
 }
 
 .card--wide {
-  max-width: 640px;
+  max-width: min(640px, 100%);
 }
 
 .card-accent {
@@ -134,7 +143,7 @@
 }
 
 .card-inner {
-  padding: 32px 28px 28px;
+  padding: clamp(22px, 4vw, 32px) clamp(16px, 3.5vw, 28px) clamp(20px, 3.5vw, 28px);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -322,28 +331,114 @@
   margin: 0;
 }
 
-/* ── Buttons ── */
-.certificate-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
+/* ── E-Certificate claim ready ── */
+.page--ecert-ready {
+  gap: clamp(18px, 3vw, 28px);
+}
+
+.page--ecert-ready .header .subtitle strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.card--ecert-ready .card-inner {
   align-items: center;
+  text-align: center;
+}
+
+.ecert-ready-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f73131, #c8102e);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(247, 49, 49, 0.35);
+}
+
+.ecert-code-box {
   width: 100%;
-  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
-.certificate-actions .form-error {
-  flex-basis: 100%;
+.ecert-code-value {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  font-family: var(--mono);
+  font-size: clamp(0.72rem, 2.5vw, 0.9rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
+.ecert-code-value::-webkit-scrollbar {
+  display: none;
+}
+
+.ecert-code-value--medium {
+  font-size: clamp(0.66rem, 2.2vw, 0.82rem);
+  letter-spacing: 0.03em;
+}
+
+.ecert-code-value--long {
+  font-size: clamp(0.6rem, 1.95vw, 0.74rem);
+  letter-spacing: 0.025em;
+}
+
+.btn--claim-cert {
+  margin-top: 4px;
+}
+
+.card--ecert-ready .card-footnote {
+  max-width: 360px;
+}
+
+.ecert-card-divider {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ecert-card-logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.ecert-card-logo img {
+  width: min(280px, 72vw);
+  height: auto;
+  opacity: 0.92;
+  display: block;
+}
+
+/* ── Buttons ── */
 .btn {
   font: inherit;
-  font-size: 14px;
+  font-size: clamp(13px, 2.8vw, 14px);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 14px 28px;
+  padding: clamp(12px, 2.5vw, 14px) clamp(20px, 4vw, 28px);
   border-radius: 10px;
   border: 1px solid transparent;
   cursor: pointer;
@@ -366,6 +461,7 @@
 
 .btn-primary {
   width: 100%;
+  max-width: 320px;
   color: #fff;
   background: linear-gradient(135deg, #f73131 0%, #c8102e 100%);
   box-shadow: 0 8px 24px rgba(200, 16, 46, 0.35);
@@ -385,6 +481,13 @@
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 160, 160, 0.45);
   }
+}
+
+.registration-form .btn-primary,
+.success-card .btn-primary,
+.card--claim .btn-primary,
+.card--ecert-ready .btn-primary {
+  align-self: center;
 }
 
 .btn-copy {
@@ -569,22 +672,70 @@
 
 @media (max-width: 1024px) {
   .page {
-    padding: 28px 16px 44px;
-    gap: 22px;
-  }
-
-  .card-inner {
-    padding: 26px 20px 22px;
+    padding: 24px 14px 40px;
+    gap: 20px;
   }
 }
 
 .logo-container {
-  margin-top: 1px;
+  width: 100%;
+  max-width: min(640px, 100%);
+  margin-top: 4px;
+  padding: 0 clamp(12px, 3vw, 20px);
   text-align: center;
 }
 
 .footer-logo {
-  width: 400px;      /* Adjust size */
+  width: min(400px, 88vw);
+  max-width: 100%;
   height: auto;
   opacity: 0.9;
+  display: inline-block;
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 18px 10px 32px;
+    gap: 16px;
+    min-height: calc(100svh - 52px);
+  }
+
+  .card-inner {
+    gap: 16px;
+  }
+
+  .registration-form {
+    gap: 14px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 11px 12px;
+    font-size: 16px;
+  }
+
+  .code-input {
+    padding: 14px 12px;
+    font-size: 16px;
+  }
+
+  .btn-primary {
+    max-width: none;
+  }
+
+  .registration-code-row {
+    flex-direction: column;
+  }
+
+  .footer-logo {
+    width: min(320px, 90vw);
+  }
+}
+
+@media (min-width: 768px) {
+  .btn-primary {
+    width: auto;
+    min-width: 220px;
+  }
 }

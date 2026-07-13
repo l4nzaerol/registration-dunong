@@ -47,10 +47,11 @@
 body {
   margin: 0;
   background: #0a0204;
+  overflow-x: hidden;
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -58,6 +59,7 @@ body {
   display: flex;
   flex-direction: column;
   background: #0a0204;
+  overflow-x: hidden;
 }
 
 h1,

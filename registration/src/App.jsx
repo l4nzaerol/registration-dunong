@@ -229,9 +229,7 @@ function RegistrationPage() {
         <section className="card card--wide success-card">
           <span className="card-accent" aria-hidden="true" />
           <div className="card-inner">
-            <div className="success-icon" aria-hidden="true">
-              ✓
-            </div>
+            
             <p className="card-label">Registration Complete</p>
             <h1>Registration Successful</h1>
             <p className="success-message">
@@ -382,8 +380,8 @@ function RegistrationPage() {
         </div>
       </section>
       <div className="logo-container">
-  <img src="/cysdo-combined-logo.png" alt="cysdo-combined-logo" className="footer-logo" />
-</div>
+        <img src="/cysdo-combined-logo.png" alt="CYSDO" className="footer-logo" />
+      </div>
     </div>
   )
 }
@@ -412,6 +410,17 @@ function CertificateUnavailablePage() {
       </section>
     </div>
   )
+}
+
+function getCodeSizeClass(code) {
+  const length = String(code || '').length
+  if (length > 28) {
+    return 'ecert-code-value--long'
+  }
+  if (length > 22) {
+    return 'ecert-code-value--medium'
+  }
+  return ''
 }
 
 function CertificatePage() {
@@ -540,7 +549,7 @@ function CertificatePage() {
       setDownloadError('')
 
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await new Promise((resolve) => setTimeout(resolve, 800))
         if (!cancelled) {
           await downloadCertificate()
         }
@@ -589,30 +598,13 @@ function CertificatePage() {
     await fetchCertificate(code)
   }
 
-  function handleReset() {
-    setStep('form')
-    setCode('')
-    setErrors({})
-    setCertificateData(null)
-    setSubmitError('')
-    setDownloadError('')
-    setFeedbackRequired(false)
-    setLoadingStatus('checking')
-    setAutoDownloadPending(false)
-
-    const url = new URL(window.location.href)
-    url.searchParams.delete('code')
-    url.searchParams.delete('download')
-    window.history.replaceState({}, '', url)
-  }
-
   if (step === 'loading') {
     const loadingCopy = LOADING_COPY[loadingStatus] || LOADING_COPY.checking
 
     return (
       <div className="page">
         <header className="header">
-          <p className="eyebrow">After the Webinar</p>
+          <p className="eyebrow"></p>
           <h1>Your E-Certificate</h1>
           <p className="subtitle">{loadingCopy.subtitle}</p>
         </header>
@@ -629,35 +621,67 @@ function CertificatePage() {
   }
 
   if (step === 'certificate' && certificateData) {
+    const codeSizeClass = getCodeSizeClass(certificateData.registrationCode)
+
     return (
-      <div className="page">
+      <div className="page page--ecert-ready">
         <header className="header">
-          <p className="eyebrow"></p>
-          <h1>Congratulations!</h1>
+          <p className="eyebrow">Dunong Webinar</p>
+          <h1>Participants&apos; E-Certificate</h1>
           <p className="subtitle">
-            {certificateData.fullName} — URN: {certificateData.registrationCode}
+            Congratulations, <strong>{certificateData.fullName}</strong>
           </p>
         </header>
+
+        <section className="card card--ecert-ready">
+          <span className="card-accent" aria-hidden="true" />
+          <div className="card-inner">
+            
+
+            <p className="card-label">Certificate Issued</p>
+            <h2 className="card-title">Your E-Certificate Is Ready</h2>
+            <p className="card-desc">
+              Download your official Certificate of Participation from the Dunong Leadership
+              Webinar.
+            </p>
+
+            <hr className="card-divider" />
+
+            <div className="ecert-code-box">
+              <span className="registration-label">Registration Code</span>
+              <span className={`ecert-code-value ${codeSizeClass}`.trim()}>
+                {certificateData.registrationCode}
+              </span>
+            </div>
+
+            <p className="card-footnote">
+              Your PDF will include your registered name and this unique registration number
+              (URN).
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-primary btn--claim-cert"
+              onClick={handleDownload}
+              disabled={downloading}
+            >
+              {downloading ? 'Generating PDF...' : 'Claim My Certificate'}
+            </button>
+
+            {downloadError && <p className="form-error">{downloadError}</p>}
+
+            <hr className="card-divider ecert-card-divider" />
+
+            <div className="ecert-card-logo">
+              <img src="/cysdo-combined-logo.png" alt="CYSDO" />
+            </div>
+          </div>
+        </section>
 
         <Certificate
           fullName={certificateData.fullName}
           registrationCode={certificateData.registrationCode}
         />
-
-        <div className="certificate-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleDownload}
-            disabled={downloading}
-          >
-            {downloading ? 'Generating PDF...' : 'Download Certificate (PDF)'}
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={handleReset}>
-            Get Another Certificate
-          </button>
-          {downloadError && <p className="form-error">{downloadError}</p>}
-        </div>
       </div>
     )
   }
@@ -733,11 +757,9 @@ function CertificatePage() {
         </div>
       </section>
       
-<div className="logo-container">
-  <img src="/cysdo-combined-logo.png" alt="cysdo-combined-logo" className="footer-logo" />
-</div>
-
-    
+      <div className="logo-container">
+        <img src="/cysdo-combined-logo.png" alt="CYSDO" className="footer-logo" />
+      </div>
     </div>
   )
 }

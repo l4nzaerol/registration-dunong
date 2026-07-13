@@ -1,68 +1,77 @@
-.certificate-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0 8px;
+/* Off-screen fixed-size render — same output on mobile and desktop */
+.certificate-export-host {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  z-index: -1;
+  width: 1491px;
+  pointer-events: none;
 }
 
-.certificate {
+.certificate--fixed {
   position: relative;
-  width: 100%;
-  max-width: 1056px;
+  width: 1491px;
+  max-width: 1491px;
   line-height: 1;
   container-type: inline-size;
 }
 
 .certificate-template {
   display: block;
-  width: 100%;
+  width: 1491px;
   height: auto;
 }
 
-/* Centered on the underline between "is proudly presented to" and body text */
+/* Anchored above "for your active participation" — bottom edge sits in the name gap */
 .certificate-name {
   position: absolute;
   left: 50%;
-  top: 39.15%;
-  transform: translate(-50%, -100%);
-  width: 46.7%;
+  top: 41%;
+  transform: translate(-50%, calc(-100% - 0.55%));
+  width: max-content;
+  max-width: 88%;
   margin: 0;
-  padding: 0 0 0.12em;
-  border: 0;
+  padding: 0;
   text-align: center;
+  pointer-events: none;
+}
+
+.certificate-name-text {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 0 0.08em;
+  border: 0;
+  border-bottom: 0.1cqi solid #0a0a0a;
   font-family: 'Times New Roman', Times, Georgia, serif;
-  font-size: clamp(0.98rem, 3.35cqi, 1.85rem);
+  font-size: 4.35cqi;
   font-weight: 700;
   font-style: normal;
   color: #0a0a0a;
   letter-spacing: 0.06em;
   line-height: 1.05;
+  white-space: nowrap;
+  text-transform: uppercase;
   background: transparent;
   box-shadow: none;
-  text-transform: uppercase;
-  word-break: break-word;
-  hyphens: auto;
-  pointer-events: none;
   -webkit-text-fill-color: #0a0a0a;
 }
 
-.certificate-name--long {
-  font-size: clamp(0.86rem, 2.9cqi, 1.55rem);
+.certificate-name--long .certificate-name-text {
+  font-size: 3.75cqi;
   letter-spacing: 0.045em;
 }
 
-.certificate-name--xlong {
-  font-size: clamp(0.76rem, 2.45cqi, 1.32rem);
+.certificate-name--xlong .certificate-name-text {
+  font-size: 3.2cqi;
   letter-spacing: 0.035em;
 }
 
-.certificate-name--xxlong {
-  font-size: clamp(0.66rem, 2.05cqi, 1.12rem);
+.certificate-name--xxlong .certificate-name-text {
+  font-size: 2.75cqi;
   letter-spacing: 0.025em;
-  line-height: 1.1;
 }
 
-/* Bottom-right white pocket — right-aligned, clear of red border */
 .certificate-urn {
   position: absolute;
   right: 5%;
@@ -73,7 +82,7 @@
   max-width: 32%;
   text-align: right;
   font-family: 'Times New Roman', Times, Georgia, serif;
-  font-size: clamp(0.72rem, 1.28cqi, 1rem);
+  font-size: 1.28cqi;
   font-weight: 600;
   font-style: italic;
   letter-spacing: 0.03em;
@@ -84,24 +93,4 @@
   box-shadow: none;
   pointer-events: none;
   -webkit-text-fill-color: #121212;
-}
-
-@media print {
-  body * {
-    visibility: hidden;
-  }
-
-  #e-certificate,
-  #e-certificate * {
-    visibility: visible;
-  }
-
-  #e-certificate {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-  }
 }

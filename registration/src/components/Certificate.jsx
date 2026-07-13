@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf'
 import './Certificate.css'
 
 const TEMPLATE_SRC = '/certificate-template.png'
+export const CERTIFICATE_RENDER_WIDTH = 1491
 
 function formatCertificateName(name) {
   return String(name || '')
@@ -35,15 +36,18 @@ export default function Certificate({ fullName, registrationCode }) {
   const nameSizeClass = getNameSizeClass(displayName)
 
   return (
-    <div className="certificate-wrapper">
-      <div className="certificate" id="e-certificate">
+    <div className="certificate-export-host" aria-hidden="true">
+      <div className="certificate certificate--fixed" id="e-certificate">
         <img
           src={TEMPLATE_SRC}
-          alt="Certificate of Participation"
+          alt=""
           className="certificate-template"
           crossOrigin="anonymous"
+          width={CERTIFICATE_RENDER_WIDTH}
         />
-        <p className={`certificate-name ${nameSizeClass}`.trim()}>{displayName}</p>
+        <div className={`certificate-name ${nameSizeClass}`.trim()}>
+          <span className="certificate-name-text">{displayName}</span>
+        </div>
         <p className="certificate-urn">URN: {displayCode}</p>
       </div>
     </div>
@@ -76,10 +80,17 @@ export async function downloadCertificate() {
 
   await waitForCertificateImage(element)
 
+  if (document.fonts?.ready) {
+    await document.fonts.ready
+  }
+
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
     backgroundColor: '#ffffff',
+    width: CERTIFICATE_RENDER_WIDTH,
+    windowWidth: CERTIFICATE_RENDER_WIDTH,
+    logging: false,
   })
 
   const imgData = canvas.toDataURL('image/png')
