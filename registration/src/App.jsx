@@ -381,6 +381,9 @@ function RegistrationPage() {
         </form>
         </div>
       </section>
+      <div className="logo-container">
+  <img src="/cysdo-combined-logo.png" alt="cysdo-combined-logo" className="footer-logo" />
+</div>
     </div>
   )
 }
@@ -729,6 +732,12 @@ function CertificatePage() {
           </form>
         </div>
       </section>
+      
+<div className="logo-container">
+  <img src="/cysdo-combined-logo.png" alt="cysdo-combined-logo" className="footer-logo" />
+</div>
+
+    
     </div>
   )
 }

@@ -577,3 +577,14 @@
     padding: 26px 20px 22px;
   }
 }
+
+.logo-container {
+  margin-top: 1px;
+  text-align: center;
+}
+
+.footer-logo {
+  width: 400px;      /* Adjust size */
+  height: auto;
+  opacity: 0.9;
+}
