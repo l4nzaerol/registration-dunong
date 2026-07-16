@@ -1,6 +1,13 @@
 
+// Spreadsheet linked to the Dunong Feedback Google Form (Responses → Link to Sheets).
+// Copy the ID from: https://docs.google.com/spreadsheets/d/THIS_PART_IS_THE_ID/edit
 const SPREADSHEET_ID = 'PASTE_YOUR_SPREADSHEET_ID_HERE';
 const SHEET_NAME = 'Registrations';
+
+// Dunong Feedback and Evaluation Form
+const GOOGLE_FORM_ID = '1JRrFNtUlLU9_W64G8TjXSnhTxGzGcOiU8ps0EhWilFc';
+const GOOGLE_FORM_URL =
+  'https://docs.google.com/forms/d/' + GOOGLE_FORM_ID + '/viewform';
 
 // E-certificate page URL shown in Google Form confirmation (no trailing slash).
 // Example: https://your-site.vercel.app

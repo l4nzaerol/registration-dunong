@@ -83,7 +83,7 @@ Both projects need (in Vercel → Settings → Environment Variables):
 
 ```
 VITE_GAS_WEB_APP_URL=https://script.google.com/macros/s/YOUR_ID/exec
-VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/YOUR_FORM_ID/viewform
+VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/1JRrFNtUlLU9_W64G8TjXSnhTxGzGcOiU8ps0EhWilFc/viewform
 ```
 
 You can also set `GAS_WEB_APP_URL` instead of `VITE_GAS_WEB_APP_URL` — the `/api/gas` serverless function accepts either. Redeploy after adding env vars.
@@ -96,11 +96,15 @@ Set up the form, link it to the spreadsheet, install the trigger, and set the co
 
 ## Part B — Feedback Google Form setup
 
-### B1. Create the form
+Use the existing **DUNONG Feedback and Evaluation Form**:
 
-1. Go to [Google Forms](https://forms.google.com).
-2. Title: **Dunong Webinar Feedback**.
-3. Add questions **in this exact order** (order matters for Apps Script):
+**https://docs.google.com/forms/d/1JRrFNtUlLU9_W64G8TjXSnhTxGzGcOiU8ps0EhWilFc/viewform**
+
+This is the same form linked in the app via `VITE_GOOGLE_FORM_URL`. Link it to your registration spreadsheet so **Form Responses 1** and **Registrations** live in one workbook.
+
+### B1. Form questions (order matters for Apps Script)
+
+If you edit the form, keep these fields **in this order after any intro/consent pages** (order matters for Apps Script):
 
 | # | Question label | Type | Required | Used for |
 |---|----------------|------|----------|----------|
@@ -154,10 +158,11 @@ You may add more questions **after** question 4 (e.g. "What did you learn?", "Wo
 
 ### B2. Link form to the spreadsheet
 
-1. In the form, open **Responses** tab.
-2. Click the green **Sheets** icon (**Link to Sheets**).
-3. Select your **Dunong Webinar Registrations** spreadsheet.
-4. Google creates a tab like **Form Responses 1** — every submission is stored there with all answers.
+1. Open the [Dunong feedback form](https://docs.google.com/forms/d/1JRrFNtUlLU9_W64G8TjXSnhTxGzGcOiU8ps0EhWilFc/edit).
+2. Open the **Responses** tab.
+3. Click the green **Sheets** icon (**Link to Sheets**).
+4. Select your **Dunong Webinar Registrations** spreadsheet (or create a new one and copy its ID into `SPREADSHEET_ID` in `Code.gs`).
+5. Google creates a tab like **Form Responses 1** — every submission is stored there with all answers.
 
 ### B3. Form confirmation message
 
@@ -259,7 +264,7 @@ cp .env.example .env
 
 ```env
 VITE_GAS_WEB_APP_URL=https://script.google.com/macros/s/YOUR_ID/exec
-VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/YOUR_FORM_ID/viewform
+VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/1JRrFNtUlLU9_W64G8TjXSnhTxGzGcOiU8ps0EhWilFc/viewform
 VITE_APP_MODE=both
 ```
 
