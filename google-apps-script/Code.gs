@@ -58,6 +58,11 @@ const FORM_COL = {
 
 const FORM_RESPONSE_COLUMN_COUNT = 63;
 
+// Performance tuning for webinar traffic spikes.
+const CACHE_TTL_SEC = 30;
+const WRITE_LOCK_TIMEOUT_MS = 30000;
+const WRITE_LOCK_ATTEMPTS = 3;
+
 const HEADERS = [
   'Timestamp',
   'Registration Code',
@@ -126,26 +131,40 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  const lock = LockService.getScriptLock();
+  let data;
 
   try {
-    lock.waitLock(10000);
+    data = JSON.parse(e.postData.contents);
+  } catch (parseError) {
+    return jsonResponse({
+      success: false,
+      message: 'Invalid request body.',
+    });
+  }
 
-    const data = JSON.parse(e.postData.contents);
+  const action = data.action;
+
+  try {
     let result;
 
-    switch (data.action) {
+    switch (action) {
       case 'register':
-        result = registerParticipant_(data);
+        result = withWriteLock_(function () {
+          return registerParticipant_(data);
+        });
         break;
       case 'verify':
         result = verifyRegistrationCode_(data.code);
         break;
       case 'submitFeedback':
-        result = submitFeedback_(data);
+        result = withWriteLock_(function () {
+          return submitFeedback_(data);
+        });
         break;
       case 'issueCertificate':
-        result = issueCertificate_(data.code);
+        result = withWriteLock_(function () {
+          return issueCertificate_(data.code);
+        });
         break;
       case 'checkCertificateStatus':
         result = checkCertificateStatus_(data.code);
@@ -156,13 +175,93 @@ function doPost(e) {
 
     return jsonResponse(result);
   } catch (error) {
+    if (error.message === 'BUSY') {
+      return jsonResponse({
+        success: false,
+        retryable: true,
+        message:
+          'The server is busy handling many registrations. Please wait a moment — your request will retry automatically.',
+      });
+    }
+
     return jsonResponse({
       success: false,
       message: error.message || 'Server error.',
     });
-  } finally {
-    lock.releaseLock();
   }
+}
+
+function withWriteLock_(callback) {
+  const lock = LockService.getScriptLock();
+
+  for (let attempt = 0; attempt < WRITE_LOCK_ATTEMPTS; attempt++) {
+    if (lock.tryLock(WRITE_LOCK_TIMEOUT_MS)) {
+      try {
+        return callback();
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
+    if (attempt < WRITE_LOCK_ATTEMPTS - 1) {
+      Utilities.sleep(400 + attempt * 600);
+    }
+  }
+
+  throw new Error('BUSY');
+}
+
+function invalidateRegistrationCache_() {
+  const cache = CacheService.getScriptCache();
+  cache.remove('regData');
+  cache.remove('regCodes');
+}
+
+function getRegistrationRows_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('regData');
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const sheet = getSheet_();
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return [];
+  }
+
+  const values = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+  cache.put('regData', JSON.stringify(values), CACHE_TTL_SEC);
+
+  return values;
+}
+
+function getKnownRegistrationCodes_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('regCodes');
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const rows = getRegistrationRows_();
+  const codes = {};
+
+  for (let i = 0; i < rows.length; i++) {
+    const code = String(rows[i][COL.CODE - 1] || '')
+      .trim()
+      .toUpperCase();
+
+    if (code) {
+      codes[code] = true;
+    }
+  }
+
+  cache.put('regCodes', JSON.stringify(codes), CACHE_TTL_SEC);
+
+  return codes;
 }
 
 function registerParticipant_(data) {
@@ -196,6 +295,8 @@ function registerParticipant_(data) {
     'No',
     '',
   ]);
+
+  invalidateRegistrationCache_();
 
   return {
     success: true,
@@ -376,6 +477,7 @@ function checkCertificateStatus_(code) {
   }
 
   if (syncFeedbackFromFormResponses_(registrationCode)) {
+    invalidateRegistrationCache_();
     return {
       success: true,
       valid: true,
