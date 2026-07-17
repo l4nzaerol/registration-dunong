@@ -380,7 +380,7 @@ function RegistrationPage() {
               type="tel"
               value={form.phone}
               onChange={handleChange}
-              placeholder="+63 912 345 6789"
+              placeholder="09XXXXXXXXX"
               autoComplete="tel"
             />
             {errors.phone && <span className="error">{errors.phone}</span>}
