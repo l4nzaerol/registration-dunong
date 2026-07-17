@@ -9,6 +9,7 @@ import Certificate, { downloadCertificate } from './components/Certificate'
 import './App.css'
 
 const GOOGLE_FORM_URL = import.meta.env.VITE_GOOGLE_FORM_URL || ''
+const ZOOM_URL = import.meta.env.VITE_ZOOM_URL || 'https://zoom.us/j/97660103140?pwd=AafhCgNuG6qx4xlFqJapMGBtV9aFi9.1'
 const APP_MODE = import.meta.env.VITE_APP_MODE || 'both'
 const IS_REGISTER_ONLY = APP_MODE === 'register'
 const IS_CERTIFICATE_ONLY = APP_MODE === 'certificate'
@@ -246,18 +247,24 @@ function RegistrationPage() {
             </div>
 
             <p className="registration-note">
-              Save this code. After the webinar, submit the feedback Google Form using this code.
-              A personalized e-certificate claim link will be sent to your registered email and
-              shown in the form confirmation message.
+              Save your registration code. You will need it after the webinar to submit feedback
+              and claim your e-certificate.
             </p>
 
-            {GOOGLE_FORM_URL && (
-              <p className="registration-note">
-                <a href={GOOGLE_FORM_URL} target="_blank" rel="noopener noreferrer">
-                  Open Feedback Form
-                </a>{' '}
-                (available after the webinar)
-              </p>
+            {ZOOM_URL && (
+              <div className="zoom-link-box">
+                <p className="registration-note">
+                  Join the Dunong Webinar on Zoom using the link below:
+                </p>
+                <a
+                  href={ZOOM_URL}
+                  className="btn btn-primary zoom-link-btn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join Zoom Webinar
+                </a>
+              </div>
             )}
 
             <hr className="card-divider" />
@@ -330,11 +337,11 @@ function RegistrationPage() {
 
             <div className="form-group">
               <label htmlFor="email">
-  EMAIL ADDRESS *
-  <span style={{ visibility: "hidden", display: "block" }}>
-    (placeholder)
-  </span>
-</label>
+              EMAIL ADDRESS *
+              <span style={{ visibility: "hidden", display: "block" }}>
+                (placeholder)
+              </span>
+            </label>
               
               <input
                 id="email"
