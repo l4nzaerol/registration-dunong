@@ -1,7 +1,6 @@
 
 // Spreadsheet linked to the Dunong Feedback Google Form (Responses → Link to Sheets).
-// Copy the ID from: https://docs.google.com/spreadsheets/d/THIS_PART_IS_THE_ID/edit
-const SPREADSHEET_ID = 'PASTE_YOUR_SPREADSHEET_ID_HERE';
+const SPREADSHEET_ID = '1L-uVPGSym1OysehKaCg9vO1u-QpCl0RXj5kJu812aSs';
 const SHEET_NAME = 'Registrations';
 
 // Dunong Feedback and Evaluation Form
@@ -13,13 +12,51 @@ const GOOGLE_FORM_URL =
 // Example: https://your-site.vercel.app
 const CERTIFICATE_PAGE_URL = 'PASTE_YOUR_DEPLOYED_APP_URL_HERE';
 
-// Google Form response columns (0 = timestamp). Adjust if your form field order differs.
+// Form Responses column indices (0 = Timestamp). Matches Dunong feedback form headers.
+// Full form has 63 columns (0–62). Google Forms writes every answer to Form Responses 1
+// when the form is linked to the spreadsheet; indices below are for Apps Script lookups.
 const FORM_COL = {
-  REGISTRATION_CODE: 1,
+  CONSENT: 1,
   FULL_NAME: 2,
-  RATING: 3,
-  COMMENTS: 4,
+  REGISTRATION_CODE: 3,
+  ADDRESS: 4,
+  AGE: 5,
+  GENDER: 6,
+  // Block A — general training (cols 7–10)
+  CONTENT_RELEVANCE_A: 7,
+  MATERIALS_ENGAGING_A: 8,
+  TRAINER_EFFECTIVE_A: 9,
+  TRAINER_EXPERTISE_A: 10,
+  // Block B — trainer & schedule (cols 11–14)
+  TRAINER_EFFECTIVE_B: 11,
+  TRAINER_EXPERTISE_B: 12,
+  TRAINER_PARTICIPATION: 13,
+  SCHEDULE_PACE: 14,
+  // Block C — virtual delivery (cols 15–18)
+  VIRTUAL_DELIVERY: 15,
+  VIRTUAL_ENGAGEMENT: 16,
+  RESPONSIVENESS: 17,
+  HANDLING_ISSUES: 18,
+  // Block D — environment & presentation (cols 19–24)
+  TRAINING_ENVIRONMENT: 19,
+  PRESENTATION_RELEVANCE: 20,
+  VOICE_QUALITY: 21,
+  DYNAMISM: 22,
+  PRESENTER_EXPERTISE: 23,
+  OVERALL_SATISFACTION: 24,
+  RECOMMEND_MENTOR: 25,
+  BENEFITS_PROBLEMS: 26,
+  COMMENTS: 27,
+  VENUE_FACILITIES: 28,
+  // Branching sections repeat similar questions (cols 29–51) — only the answered
+  // branch has values; others stay blank in Form Responses 1.
+  TRAINING_DELIVERY_METHOD: 54,
+  OVERALL_FEEDBACK: 62,
+  // Aliases used when saving to Registrations sheet
+  RATING: 24,
 };
+
+const FORM_RESPONSE_COLUMN_COUNT = 63;
 
 const HEADERS = [
   'Timestamp',
@@ -425,12 +462,12 @@ function issueCertificate_(code) {
  * Installable trigger: Run when a Google Form response is submitted.
  * In Apps Script: Triggers → Add trigger → onFormSubmit → From spreadsheet → On form submit.
  *
- * Expected form fields (in order):
- * 1. Registration Code (short answer, required)
- * 2. Full Name (short answer, required)
- * 3. Webinar Rating (1–5)
- * 4. Feedback Comments (paragraph)
- * Additional questions may be added after #4; they are stored in Form Responses only.
+ * Dunong form column order (after Timestamp):
+ * Consent, Full Name, Registration Code, Address, Age, Gender, rating blocks,
+ * Overall satisfaction (col 24), Recommend mentor (25), Benefits (26),
+ * Comment and Suggestions (27), branching sections (29–51),
+ * Training delivery method (54), Overall feedback (62).
+ * Google Forms stores every answer in Form Responses 1; see FORM_COL for indices.
  */
 function onFormSubmit(e) {
   const lock = LockService.getScriptLock();
@@ -443,8 +480,16 @@ function onFormSubmit(e) {
       .trim()
       .toUpperCase();
     const formFullName = String(responses[FORM_COL.FULL_NAME] || '').trim();
-    const ratingRaw = responses[FORM_COL.RATING];
-    const comments = String(responses[FORM_COL.COMMENTS] || '').trim();
+
+    if (responses.length < FORM_RESPONSE_COLUMN_COUNT) {
+      Logger.log(
+        'Form submit: expected at least ' +
+          FORM_RESPONSE_COLUMN_COUNT +
+          ' columns, got ' +
+          responses.length +
+          '. Check that the form is linked to this spreadsheet.'
+      );
+    }
 
     if (!registrationCode) {
       Logger.log('Form submit skipped: missing registration code.');
@@ -473,12 +518,9 @@ function onFormSubmit(e) {
 
     const alreadySubmitted =
       String(row.values[COL.FEEDBACK_SUBMITTED - 1]).toLowerCase() === 'yes';
-    const formRow = [];
-    formRow[FORM_COL.RATING] = ratingRaw;
-    formRow[FORM_COL.COMMENTS] = comments;
 
     if (!alreadySubmitted) {
-      applyFeedbackToRegistration_(registrationCode, formRow);
+      applyFeedbackToRegistration_(registrationCode, responses);
     }
 
     const certUrl = buildCertificateUrl_(registrationCode, false);
@@ -527,6 +569,36 @@ function parseRating_(value) {
   }
 
   return '';
+}
+
+function extractCommentsFromFormRow_(formRow) {
+  const suggestions = String(formRow[FORM_COL.COMMENTS] || '').trim();
+  const benefits = String(formRow[FORM_COL.BENEFITS_PROBLEMS] || '').trim();
+  const overallFeedback = String(formRow[FORM_COL.OVERALL_FEEDBACK] || '').trim();
+
+  const parts = [];
+
+  if (benefits) {
+    parts.push('Benefits/Problems: ' + benefits);
+  }
+
+  if (suggestions) {
+    parts.push('Suggestions: ' + suggestions);
+  }
+
+  if (!suggestions && !benefits && overallFeedback) {
+    parts.push(overallFeedback);
+  }
+
+  return parts.join('\n\n');
+}
+
+function getFormResponseColumnCount_(formSheet) {
+  if (!formSheet) {
+    return FORM_RESPONSE_COLUMN_COUNT;
+  }
+
+  return Math.max(formSheet.getLastColumn(), FORM_RESPONSE_COLUMN_COUNT);
 }
 
 function submitFeedback_(data) {
@@ -639,7 +711,7 @@ function findFormResponseRow_(registrationCode) {
 
     if (code === registrationCode) {
       const rowNumber = i + 2;
-      const numCols = Math.max(formSheet.getLastColumn(), FORM_COL.COMMENTS + 1);
+      const numCols = getFormResponseColumnCount_(formSheet);
       return formSheet.getRange(rowNumber, 1, 1, numCols).getValues()[0];
     }
   }
@@ -662,7 +734,7 @@ function applyFeedbackToRegistration_(registrationCode, formRow) {
   }
 
   const rating = parseRating_(formRow[FORM_COL.RATING]);
-  const comments = String(formRow[FORM_COL.COMMENTS] || '').trim();
+  const comments = extractCommentsFromFormRow_(formRow);
   const sheet = getSheet_();
 
   sheet.getRange(row.rowNumber, COL.FEEDBACK_SUBMITTED).setValue('Yes');

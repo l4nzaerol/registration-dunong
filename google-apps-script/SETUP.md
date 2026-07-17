@@ -104,57 +104,36 @@ This is the same form linked in the app via `VITE_GOOGLE_FORM_URL`. Link it to y
 
 ### B1. Form questions (order matters for Apps Script)
 
-If you edit the form, keep these fields **in this order after any intro/consent pages** (order matters for Apps Script):
+The Dunong form has **63 columns** in **Form Responses 1** (index 0 = Timestamp). When the form is linked to your spreadsheet, Google automatically saves **every answer** to that tab — you do not need extra code for raw storage.
 
-| # | Question label | Type | Required | Used for |
-|---|----------------|------|----------|----------|
-| **1** | **Registration Code** | Short answer | **Yes** | Links feedback to the correct row — **required for certificate** |
-| **2** | **Full Name** | Short answer | **Yes** | Verification + saved in Form Responses tab |
-| **3** | **Webinar Rating** | Multiple choice | Yes | Saved to **Registrations → Rating** |
-| **4** | **Your Feedback** | Paragraph | Yes | Saved to **Registrations → Comments** |
-| 5+ | *(optional extra questions)* | Any type | Optional | Saved in **Form Responses** only |
+| Index | Column header |
+|-------|----------------|
+| 0 | Timestamp |
+| 1 | Data Privacy Consent |
+| 2 | Full Name |
+| **3** | **Registration Code** ← used to match Registrations row |
+| 4 | Address |
+| 5 | Age |
+| 6 | Gender |
+| 7–10 | Training content & materials (block A) |
+| 11–14 | Trainer effectiveness, participation, schedule (block B) |
+| 15–18 | Virtual delivery, engagement, responsiveness (block C) |
+| 19 | Training environment |
+| 20–23 | Presentation quality (relevance, voice, dynamism, expertise) |
+| **24** | **5. Overall satisfaction** ← saved to **Registrations → Rating** |
+| 25 | Would you recommend the mentor(s)/trainor(s)? |
+| 26 | Benefits gained and problems encountered |
+| **27** | **Comment and Suggestions** ← saved to **Registrations → Comments** |
+| 28 | Venue and facilities |
+| 29–51 | Branching sections (in-person / hybrid / repeat blocks) — blank when not shown |
+| 54 | Training delivery method |
+| 62 | Overall feedback |
 
-#### Question 1 — Registration Code
+These indices are set in `FORM_COL` in [`Code.gs`](./Code.gs). If you reorder form questions, update `FORM_COL` and redeploy.
 
-- Type: **Short answer**
-- Required: **Yes**
-- Description (suggested):
-  ```
-  Enter the code you received when you registered (example: DUNONG-20260711-ABC123).
-  Copy it exactly from your registration confirmation.
-  ```
-- Turn on **Response validation → Text → Contains** (optional) or leave as plain text.
+If you edit the form, keep **Registration Code** as the **4th answer column** (after Timestamp, Consent, Full Name). Do not insert new questions before it without updating `FORM_COL`.
 
-#### Question 2 — Full Name
-
-- Type: **Short answer**
-- Required: **Yes**
-- Description (suggested):
-  ```
-  Enter your full name exactly as you registered. This must match your registration.
-  ```
-- The certificate will show the name from your **registration**, not this form answer. This field helps you verify the person submitting feedback is the registered participant.
-
-#### Question 3 — Webinar Rating
-
-- Type: **Multiple choice**
-- Options (use these labels so the script can read the number):
-  ```
-  5 - Excellent
-  4 - Good
-  3 - Average
-  2 - Fair
-  1 - Poor
-  ```
-
-#### Question 4 — Your Feedback
-
-- Type: **Paragraph**
-- Required: **Yes**
-
-#### Optional extra questions (Q5, Q6, …)
-
-You may add more questions **after** question 4 (e.g. "What did you learn?", "Would you recommend this webinar?"). They are automatically saved in the **Form Responses** tab. Do **not** insert new questions between 1–4 without updating `FORM_COL` in `Code.gs`.
+> **Branching forms:** The form uses sections for different delivery methods (virtual, in-person, etc.). Questions that were not shown to a participant appear as **empty cells** in Form Responses 1 — this is normal. All columns still exist in the sheet.
 
 ### B2. Link form to the spreadsheet
 
@@ -306,7 +285,7 @@ Extra questions after #4 do not require code changes.
 | Name mismatch in Apps Script logs | Participant typed a different name in the form; cert still uses registered name |
 | No certificate email | Check spam; confirm `CERTIFICATE_PAGE_URL` is set; trigger needs Gmail permission |
 | Rating not saved | Use options starting with `5 -`, `4 -`, etc. |
-| Extra form answers missing | Check **Form Responses 1** tab (not Registrations) — only Q3–Q4 sync to Registrations |
+| Extra form answers missing | All answers live in **Form Responses 1** (63 columns). Confirm the form is **Link to Sheets** on the same spreadsheet as `SPREADSHEET_ID`. Only Rating + Comments sync to **Registrations** |
 | CORS errors | URL must end with `/exec`; app uses `Content-Type: text/plain` |
 
 ---
